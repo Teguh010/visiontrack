@@ -4,19 +4,16 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
 import { VehicleModule } from "./modules/vehicle/vehicle.module";
 import { TrackingModule } from "./modules/tracking/tracking.module";
+import { ReportsModule } from "./modules/reports/reports.module";
 
 @Module({
   imports: [
-    // Global config (reads .env)
     ConfigModule.forRoot({ isGlobal: true }),
-
-    // Shared infrastructure
     PrismaModule,
     RedisModule,
-
-    // Feature modules
     VehicleModule,
     TrackingModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}

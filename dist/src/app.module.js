@@ -13,6 +13,7 @@ const prisma_module_1 = require("./prisma/prisma.module");
 const redis_module_1 = require("./redis/redis.module");
 const vehicle_module_1 = require("./modules/vehicle/vehicle.module");
 const tracking_module_1 = require("./modules/tracking/tracking.module");
+const reports_module_1 = require("./modules/reports/reports.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -24,6 +25,7 @@ exports.AppModule = AppModule = __decorate([
             redis_module_1.RedisModule,
             vehicle_module_1.VehicleModule,
             tracking_module_1.TrackingModule,
+            reports_module_1.ReportsModule,
         ],
     })
 ], AppModule);
