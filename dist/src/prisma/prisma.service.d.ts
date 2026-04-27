@@ -9,6 +9,9 @@ export declare class PrismaService implements OnModuleInit, OnModuleDestroy {
     };
     get trackingPoint(): {
         create(args: object): Promise<unknown>;
+        createMany(args: object): Promise<{
+            count: number;
+        }>;
         findMany(args?: object): Promise<unknown[]>;
     };
     onModuleInit(): Promise<void>;

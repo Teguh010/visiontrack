@@ -15,6 +15,7 @@ const { PrismaClient } = require("@prisma/client") as {
     };
     trackingPoint: {
       create(args: object): Promise<unknown>;
+      createMany(args: object): Promise<{ count: number }>;
       findMany(args?: object): Promise<unknown[]>;
     };
   };

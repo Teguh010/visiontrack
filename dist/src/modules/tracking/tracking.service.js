@@ -19,21 +19,37 @@ const STOP_SPEED_THRESHOLD_KMH = 5;
 const STOP_DURATION_MS = 2 * 60 * 1000;
 const REDIS_TTL_SECONDS = 60 * 60 * 24;
 const REDIS_KEY_PREFIX = "vehicle:last:";
+const STOP_STATE_PREFIX = "vehicle:stop_state:";
+const STOP_STATE_TTL_SECONDS = 60 * 60 * 6;
+const FLUSH_INTERVAL_MS = 5_000;
+const BATCH_MAX_SIZE = 500;
 let TrackingService = TrackingService_1 = class TrackingService {
     prisma;
     redis;
     gateway;
     logger = new common_1.Logger(TrackingService_1.name);
-    stopStates = new Map();
+    writeBuffer = [];
+    flushTimer = null;
     constructor(prisma, redis, gateway) {
         this.prisma = prisma;
         this.redis = redis;
         this.gateway = gateway;
     }
+    onModuleInit() {
+        this.flushTimer = setInterval(() => {
+            void this.flushBuffer();
+        }, FLUSH_INTERVAL_MS);
+        this.logger.log(`⏱  Batch write buffer active — flushing every ${FLUSH_INTERVAL_MS / 1000}s`);
+    }
+    async onModuleDestroy() {
+        if (this.flushTimer)
+            clearInterval(this.flushTimer);
+        await this.flushBuffer();
+    }
     async processLocation(data) {
-        const status = this.detectStatus(data.vehicleId, data.speed, data.timestamp);
+        const status = await this.detectStatus(data.vehicleId, data.speed, data.timestamp);
         await this.ensureVehicleExists(data.vehicleId, data.vehicleType);
-        await this.saveToDatabase(data, status);
+        await this.bufferTrackingPoint(data, status);
         const lastPosition = {
             vehicleId: data.vehicleId,
             vehicleType: data.vehicleType,
@@ -48,44 +64,62 @@ let TrackingService = TrackingService_1 = class TrackingService {
         await this.redis.setJson(`${REDIS_KEY_PREFIX}${data.vehicleId}`, lastPosition, REDIS_TTL_SECONDS);
         this.gateway.emitVehicleUpdate(lastPosition);
     }
-    detectStatus(vehicleId, speed, timestamp) {
-        if (!this.stopStates.has(vehicleId)) {
-            this.stopStates.set(vehicleId, { firstSlowTimestamp: null, currentStatus: "MOVING" });
-        }
-        const state = this.stopStates.get(vehicleId);
+    async detectStatus(vehicleId, speed, timestamp) {
+        const redisKey = `${STOP_STATE_PREFIX}${vehicleId}`;
+        const state = (await this.redis.getJson(redisKey)) ?? {
+            firstSlowTimestamp: null,
+            currentStatus: "MOVING",
+        };
+        let changed = false;
         if (speed >= STOP_SPEED_THRESHOLD_KMH) {
-            state.firstSlowTimestamp = null;
-            state.currentStatus = "MOVING";
+            if (state.firstSlowTimestamp !== null || state.currentStatus !== "MOVING") {
+                state.firstSlowTimestamp = null;
+                state.currentStatus = "MOVING";
+                changed = true;
+            }
         }
         else {
-            if (!state.firstSlowTimestamp)
-                state.firstSlowTimestamp = timestamp;
-            const slowDurationMs = timestamp.getTime() - state.firstSlowTimestamp.getTime();
-            if (slowDurationMs >= STOP_DURATION_MS) {
-                if (state.currentStatus !== "STOPPED") {
-                    this.logger.log(`🔴 Vehicle ${vehicleId} STOPPED (slow ${Math.round(slowDurationMs / 1000)}s)`);
-                }
-                state.currentStatus = "STOPPED";
+            if (!state.firstSlowTimestamp) {
+                state.firstSlowTimestamp = timestamp.toISOString();
+                changed = true;
             }
+            const slowDurationMs = timestamp.getTime() - new Date(state.firstSlowTimestamp).getTime();
+            if (slowDurationMs >= STOP_DURATION_MS && state.currentStatus !== "STOPPED") {
+                this.logger.log(`🔴 Vehicle ${vehicleId} STOPPED (slow ${Math.round(slowDurationMs / 1000)}s)`);
+                state.currentStatus = "STOPPED";
+                changed = true;
+            }
+        }
+        if (changed) {
+            await this.redis.setJson(redisKey, state, STOP_STATE_TTL_SECONDS);
         }
         return state.currentStatus;
     }
-    async saveToDatabase(data, status) {
+    async bufferTrackingPoint(data, status) {
+        this.writeBuffer.push({
+            vehicleId: data.vehicleId,
+            lat: data.lat,
+            lon: data.lon,
+            speed: data.speed,
+            heading: data.heading,
+            status,
+            timestamp: data.timestamp,
+        });
+        if (this.writeBuffer.length >= BATCH_MAX_SIZE) {
+            await this.flushBuffer();
+        }
+    }
+    async flushBuffer() {
+        if (this.writeBuffer.length === 0)
+            return;
+        const batch = this.writeBuffer.splice(0, this.writeBuffer.length);
         try {
-            await this.prisma.trackingPoint.create({
-                data: {
-                    vehicleId: data.vehicleId,
-                    lat: data.lat,
-                    lon: data.lon,
-                    speed: data.speed,
-                    heading: data.heading,
-                    status,
-                    timestamp: data.timestamp,
-                },
-            });
+            const result = await this.prisma.trackingPoint.createMany({ data: batch });
+            this.logger.debug(`💾 Flushed ${result.count} tracking points to PostgreSQL`);
         }
         catch (err) {
-            this.logger.error(`❌ Failed to save tracking point for ${data.vehicleId}:`, err);
+            this.logger.error(`❌ Batch flush failed (${batch.length} records):`, err);
+            this.writeBuffer.unshift(...batch);
         }
     }
     async ensureVehicleExists(vehicleId, vehicleType) {
