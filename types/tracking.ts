@@ -3,20 +3,25 @@
  */
 
 export type VehicleStatus = "MOVING" | "STOPPED";
+export type VehicleType   = "CITY" | "HIGHWAY" | "DELIVERY" | "PATROL";
+export type DriveState    = "DRIVING" | "IDLE" | "STOPPED";
 
 export interface Vehicle {
   id: string;
   name: string;
   plate: string;
+  vehicleType: VehicleType;
   createdAt: string;
 }
 
 export interface LastPosition {
   vehicleId: string;
+  vehicleType: VehicleType;
   lat: number;
   lon: number;
   speed: number;
   heading: number;
+  driveState: DriveState;
   status: VehicleStatus;
   updatedAt: string;
 }
