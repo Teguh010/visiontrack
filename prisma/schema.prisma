@@ -1,0 +1,44 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Vehicle ───────────────────────────────────────────────────────────────────
+model Vehicle {
+  id        String   @id              // e.g. "VH-001"
+  name      String
+  plate     String
+  createdAt DateTime @default(now())  @map("created_at")
+
+  trackingPoints TrackingPoint[]
+
+  @@map("vehicles")
+}
+
+// ─── Tracking Point (history) ──────────────────────────────────────────────────
+model TrackingPoint {
+  id        Int      @id @default(autoincrement())
+  vehicleId String   @map("vehicle_id")
+  lat       Decimal  @db.Decimal(10, 7)
+  lon       Decimal  @db.Decimal(10, 7)
+  speed     Decimal  @db.Decimal(5, 2)
+  heading   Decimal  @db.Decimal(5, 2)
+  status    Status   @default(MOVING)
+  timestamp DateTime
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleId, timestamp])
+  @@map("tracking_points")
+}
+
+enum Status {
+  MOVING
+  STOPPED
+}
