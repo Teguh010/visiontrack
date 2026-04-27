@@ -4,10 +4,12 @@ import { ProcessedLocation } from "./dto/mqtt-payload.dto";
 import { TrackingGateway } from "./tracking.gateway";
 export interface LastPosition {
     vehicleId: string;
+    vehicleType: string;
     lat: number;
     lon: number;
     speed: number;
     heading: number;
+    driveState: string;
     status: "MOVING" | "STOPPED";
     updatedAt: string;
 }
@@ -22,6 +24,7 @@ export declare class TrackingService {
     private detectStatus;
     private saveToDatabase;
     private ensureVehicleExists;
+    private defaultName;
     getLatestPositions(): Promise<LastPosition[]>;
     getHistory(vehicleId: string, from: Date, to: Date): Promise<unknown[]>;
 }

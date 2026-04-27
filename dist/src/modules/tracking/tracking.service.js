@@ -32,14 +32,16 @@ let TrackingService = TrackingService_1 = class TrackingService {
     }
     async processLocation(data) {
         const status = this.detectStatus(data.vehicleId, data.speed, data.timestamp);
-        await this.ensureVehicleExists(data.vehicleId);
+        await this.ensureVehicleExists(data.vehicleId, data.vehicleType);
         await this.saveToDatabase(data, status);
         const lastPosition = {
             vehicleId: data.vehicleId,
+            vehicleType: data.vehicleType,
             lat: data.lat,
             lon: data.lon,
             speed: data.speed,
             heading: data.heading,
+            driveState: data.driveState,
             status,
             updatedAt: new Date().toISOString(),
         };
@@ -48,10 +50,7 @@ let TrackingService = TrackingService_1 = class TrackingService {
     }
     detectStatus(vehicleId, speed, timestamp) {
         if (!this.stopStates.has(vehicleId)) {
-            this.stopStates.set(vehicleId, {
-                firstSlowTimestamp: null,
-                currentStatus: "MOVING",
-            });
+            this.stopStates.set(vehicleId, { firstSlowTimestamp: null, currentStatus: "MOVING" });
         }
         const state = this.stopStates.get(vehicleId);
         if (speed >= STOP_SPEED_THRESHOLD_KMH) {
@@ -59,13 +58,12 @@ let TrackingService = TrackingService_1 = class TrackingService {
             state.currentStatus = "MOVING";
         }
         else {
-            if (!state.firstSlowTimestamp) {
+            if (!state.firstSlowTimestamp)
                 state.firstSlowTimestamp = timestamp;
-            }
             const slowDurationMs = timestamp.getTime() - state.firstSlowTimestamp.getTime();
             if (slowDurationMs >= STOP_DURATION_MS) {
                 if (state.currentStatus !== "STOPPED") {
-                    this.logger.log(`🔴 Vehicle ${vehicleId} STOPPED (slow for ${Math.round(slowDurationMs / 1000)}s)`);
+                    this.logger.log(`🔴 Vehicle ${vehicleId} STOPPED (slow ${Math.round(slowDurationMs / 1000)}s)`);
                 }
                 state.currentStatus = "STOPPED";
             }
@@ -90,21 +88,31 @@ let TrackingService = TrackingService_1 = class TrackingService {
             this.logger.error(`❌ Failed to save tracking point for ${data.vehicleId}:`, err);
         }
     }
-    async ensureVehicleExists(vehicleId) {
+    async ensureVehicleExists(vehicleId, vehicleType) {
         try {
             await this.prisma.vehicle.upsert({
                 where: { id: vehicleId },
-                update: {},
+                update: { vehicleType },
                 create: {
                     id: vehicleId,
-                    name: `Fleet ${vehicleId}`,
-                    plate: `B ${vehicleId.replace("VH-", "")} ABC`,
+                    name: this.defaultName(vehicleId, vehicleType),
+                    plate: `B ${vehicleId.replace("VH-", "")} ${vehicleType.slice(0, 3)}`,
+                    vehicleType,
                 },
             });
         }
         catch (err) {
             this.logger.error(`❌ Failed to upsert vehicle ${vehicleId}:`, err);
         }
+    }
+    defaultName(vehicleId, vehicleType) {
+        const labels = {
+            CITY: "City Bus",
+            HIGHWAY: "Express Truck",
+            DELIVERY: "Delivery Van",
+            PATROL: "Patrol Car",
+        };
+        return `${labels[vehicleType] ?? vehicleType} ${vehicleId.replace("VH-", "")}`;
     }
     async getLatestPositions() {
         const keys = await this.redis.keys(`${REDIS_KEY_PREFIX}*`);
@@ -115,20 +123,9 @@ let TrackingService = TrackingService_1 = class TrackingService {
     }
     async getHistory(vehicleId, from, to) {
         return this.prisma.trackingPoint.findMany({
-            where: {
-                vehicleId,
-                timestamp: { gte: from, lte: to },
-            },
+            where: { vehicleId, timestamp: { gte: from, lte: to } },
             orderBy: { timestamp: "asc" },
-            select: {
-                id: true,
-                lat: true,
-                lon: true,
-                speed: true,
-                heading: true,
-                status: true,
-                timestamp: true,
-            },
+            select: { id: true, lat: true, lon: true, speed: true, heading: true, status: true, timestamp: true },
         });
     }
 };

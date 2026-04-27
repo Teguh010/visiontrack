@@ -11,10 +11,11 @@ datasource db {
 
 // ─── Vehicle ───────────────────────────────────────────────────────────────────
 model Vehicle {
-  id        String   @id              // e.g. "VH-001"
-  name      String
-  plate     String
-  createdAt DateTime @default(now())  @map("created_at")
+  id          String   @id
+  name        String
+  plate       String
+  vehicleType String   @default("CITY") @map("vehicle_type")
+  createdAt   DateTime @default(now())  @map("created_at")
 
   trackingPoints TrackingPoint[]
 

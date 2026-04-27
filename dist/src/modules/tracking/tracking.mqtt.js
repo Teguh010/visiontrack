@@ -103,10 +103,12 @@ let TrackingMqtt = TrackingMqtt_1 = class TrackingMqtt {
             }
             void this.trackingService.processLocation({
                 vehicleId,
+                vehicleType: raw.vehicleType ?? "CITY",
                 lat: this.normalizeCoord(raw.lat, -90, 90),
                 lon: this.normalizeCoord(raw.lon, -180, 180),
                 speed: Math.max(0, raw.speed),
                 heading: raw.heading ?? 0,
+                driveState: raw.driveState ?? "DRIVING",
                 timestamp: raw.timestamp
                     ? new Date(raw.timestamp * 1000)
                     : new Date(),

@@ -19,32 +19,32 @@ import { TrackingGateway } from "./tracking.gateway";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface StopState {
-  firstSlowTimestamp: Date | null; // when speed first dropped below threshold
+  firstSlowTimestamp: Date | null;
   currentStatus: "MOVING" | "STOPPED";
 }
 
 export interface LastPosition {
   vehicleId: string;
+  vehicleType: string;       // CITY | HIGHWAY | DELIVERY | PATROL
   lat: number;
   lon: number;
   speed: number;
   heading: number;
+  driveState: string;        // DRIVING | IDLE | STOPPED
   status: "MOVING" | "STOPPED";
-  updatedAt: string; // ISO string
+  updatedAt: string;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const STOP_SPEED_THRESHOLD_KMH = 5;
-const STOP_DURATION_MS = 2 * 60 * 1000; // 2 minutes
-const REDIS_TTL_SECONDS = 60 * 60 * 24; // 24 hours
-const REDIS_KEY_PREFIX = "vehicle:last:";
+const STOP_DURATION_MS         = 2 * 60 * 1000;   // 2 minutes
+const REDIS_TTL_SECONDS        = 60 * 60 * 24;     // 24 hours
+const REDIS_KEY_PREFIX         = "vehicle:last:";
 
 @Injectable()
 export class TrackingService {
   private readonly logger = new Logger(TrackingService.name);
-
-  // In-memory stop state per vehicle (no need to persist this)
   private readonly stopStates = new Map<string, StopState>();
 
   constructor(
@@ -58,21 +58,23 @@ export class TrackingService {
   async processLocation(data: ProcessedLocation): Promise<void> {
     const status = this.detectStatus(data.vehicleId, data.speed, data.timestamp);
 
-    // Ensure vehicle record exists (auto-seed from simulator IDs)
-    await this.ensureVehicleExists(data.vehicleId);
+    // Auto-seed vehicle with type
+    await this.ensureVehicleExists(data.vehicleId, data.vehicleType);
 
     // Save to PostgreSQL (history)
     await this.saveToDatabase(data, status);
 
     // Update Redis cache (last position)
     const lastPosition: LastPosition = {
-      vehicleId: data.vehicleId,
-      lat: data.lat,
-      lon: data.lon,
-      speed: data.speed,
-      heading: data.heading,
+      vehicleId:   data.vehicleId,
+      vehicleType: data.vehicleType,
+      lat:         data.lat,
+      lon:         data.lon,
+      speed:       data.speed,
+      heading:     data.heading,
+      driveState:  data.driveState,
       status,
-      updatedAt: new Date().toISOString(),
+      updatedAt:   new Date().toISOString(),
     };
     await this.redis.setJson(
       `${REDIS_KEY_PREFIX}${data.vehicleId}`,
@@ -84,48 +86,28 @@ export class TrackingService {
     this.gateway.emitVehicleUpdate(lastPosition);
   }
 
-  // ─── Stop Detection ──────────────────────────────────────────────────────────
-  /**
-   * Simple FSM:
-   *  speed >= 5 → MOVING (reset slow timer)
-   *  speed < 5 for < 2 min → still MOVING (just slow)
-   *  speed < 5 for >= 2 min → STOPPED
-   */
-  private detectStatus(
-    vehicleId: string,
-    speed: number,
-    timestamp: Date,
-  ): "MOVING" | "STOPPED" {
+  // ─── Stop Detection FSM ──────────────────────────────────────────────────────
+
+  private detectStatus(vehicleId: string, speed: number, timestamp: Date): "MOVING" | "STOPPED" {
     if (!this.stopStates.has(vehicleId)) {
-      this.stopStates.set(vehicleId, {
-        firstSlowTimestamp: null,
-        currentStatus: "MOVING",
-      });
+      this.stopStates.set(vehicleId, { firstSlowTimestamp: null, currentStatus: "MOVING" });
     }
 
     const state = this.stopStates.get(vehicleId)!;
 
     if (speed >= STOP_SPEED_THRESHOLD_KMH) {
-      // Vehicle is moving normally
       state.firstSlowTimestamp = null;
-      state.currentStatus = "MOVING";
+      state.currentStatus      = "MOVING";
     } else {
-      // Speed is below threshold
-      if (!state.firstSlowTimestamp) {
-        state.firstSlowTimestamp = timestamp;
-      }
+      if (!state.firstSlowTimestamp) state.firstSlowTimestamp = timestamp;
 
       const slowDurationMs = timestamp.getTime() - state.firstSlowTimestamp.getTime();
-
       if (slowDurationMs >= STOP_DURATION_MS) {
         if (state.currentStatus !== "STOPPED") {
-          this.logger.log(
-            `🔴 Vehicle ${vehicleId} STOPPED (slow for ${Math.round(slowDurationMs / 1000)}s)`,
-          );
+          this.logger.log(`🔴 Vehicle ${vehicleId} STOPPED (slow ${Math.round(slowDurationMs / 1000)}s)`);
         }
         state.currentStatus = "STOPPED";
       }
-      // else: still within grace period, keep MOVING
     }
 
     return state.currentStatus;
@@ -133,18 +115,15 @@ export class TrackingService {
 
   // ─── Database Operations ─────────────────────────────────────────────────────
 
-  private async saveToDatabase(
-    data: ProcessedLocation,
-    status: "MOVING" | "STOPPED",
-  ): Promise<void> {
+  private async saveToDatabase(data: ProcessedLocation, status: "MOVING" | "STOPPED"): Promise<void> {
     try {
       await this.prisma.trackingPoint.create({
         data: {
           vehicleId: data.vehicleId,
-          lat: data.lat,
-          lon: data.lon,
-          speed: data.speed,
-          heading: data.heading,
+          lat:       data.lat,
+          lon:       data.lon,
+          speed:     data.speed,
+          heading:   data.heading,
           status,
           timestamp: data.timestamp,
         },
@@ -154,15 +133,16 @@ export class TrackingService {
     }
   }
 
-  private async ensureVehicleExists(vehicleId: string): Promise<void> {
+  private async ensureVehicleExists(vehicleId: string, vehicleType: string): Promise<void> {
     try {
       await this.prisma.vehicle.upsert({
-        where: { id: vehicleId },
-        update: {},
+        where:  { id: vehicleId },
+        update: { vehicleType },    // always keep vehicleType in sync
         create: {
-          id: vehicleId,
-          name: `Fleet ${vehicleId}`,
-          plate: `B ${vehicleId.replace("VH-", "")} ABC`,
+          id:          vehicleId,
+          name:        this.defaultName(vehicleId, vehicleType),
+          plate:       `B ${vehicleId.replace("VH-", "")} ${vehicleType.slice(0, 3)}`,
+          vehicleType,
         },
       });
     } catch (err) {
@@ -170,41 +150,33 @@ export class TrackingService {
     }
   }
 
-  // ─── Query Methods (called by controller) ───────────────────────────────────
+  private defaultName(vehicleId: string, vehicleType: string): string {
+    const labels: Record<string, string> = {
+      CITY:     "City Bus",
+      HIGHWAY:  "Express Truck",
+      DELIVERY: "Delivery Van",
+      PATROL:   "Patrol Car",
+    };
+    return `${labels[vehicleType] ?? vehicleType} ${vehicleId.replace("VH-", "")}`;
+  }
 
-  /** Get last position of all vehicles from Redis */
+  // ─── Query Methods ───────────────────────────────────────────────────────────
+
   async getLatestPositions(): Promise<LastPosition[]> {
-    const keys = await this.redis.keys(`${REDIS_KEY_PREFIX}*`);
+    const keys      = await this.redis.keys(`${REDIS_KEY_PREFIX}*`);
     if (!keys.length) return [];
 
     const positions = await Promise.all(
       keys.map((key) => this.redis.getJson<LastPosition>(key)),
     );
-
     return positions.filter(Boolean) as LastPosition[];
   }
 
-  /** Get tracking history from PostgreSQL */
-  async getHistory(
-    vehicleId: string,
-    from: Date,
-    to: Date,
-  ) {
+  async getHistory(vehicleId: string, from: Date, to: Date) {
     return this.prisma.trackingPoint.findMany({
-      where: {
-        vehicleId,
-        timestamp: { gte: from, lte: to },
-      },
+      where:   { vehicleId, timestamp: { gte: from, lte: to } },
       orderBy: { timestamp: "asc" },
-      select: {
-        id: true,
-        lat: true,
-        lon: true,
-        speed: true,
-        heading: true,
-        status: true,
-        timestamp: true,
-      },
+      select:  { id: true, lat: true, lon: true, speed: true, heading: true, status: true, timestamp: true },
     });
   }
 }
