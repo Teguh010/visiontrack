@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MapPin, History, BarChart2, Truck, Radio } from "lucide-react";
+import { MapPin, History, BarChart2, Truck, Radio, FileText } from "lucide-react";
 
 const navItems = [
-  { href: "/",          icon: MapPin,   label: "Live Map"  },
-  { href: "/history",   icon: History,  label: "History"   },
-  { href: "/analytics", icon: BarChart2, label: "Analytics" },
+  { href: "/",          icon: MapPin,    label: "Live Map"   },
+  { href: "/history",   icon: History,   label: "History"    },
+  { href: "/analytics", icon: BarChart2, label: "Analytics"  },
+  { href: "/reports",   icon: FileText,  label: "Reports"    },
 ];
 
 export function Sidebar() {
