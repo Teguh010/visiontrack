@@ -19,16 +19,20 @@ import {
   AvLidarData,
   AvStatusPayload,
   AvStatusData,
+  AvAnnotationsPayload,
+  AvAnnotationsData,
+  AvAnnotation,
   AvVehicleState,
   CameraChannel,
 } from "./dto/av-sensor.dto";
 
 // Redis keys
-const REDIS_AV_GPS      = "av:gps";
-const REDIS_AV_CAMERA   = "av:camera:";  // + channel
-const REDIS_AV_LIDAR    = "av:lidar";
-const REDIS_AV_STATUS   = "av:status";
-const REDIS_TTL_SECONDS = 60 * 5;  // 5 minutes
+const REDIS_AV_GPS         = "av:gps";
+const REDIS_AV_CAMERA      = "av:camera:";  // + channel
+const REDIS_AV_LIDAR       = "av:lidar";
+const REDIS_AV_STATUS      = "av:status";
+const REDIS_AV_ANNOTATIONS = "av:annotations";
+const REDIS_TTL_SECONDS    = 60 * 5;  // 5 minutes
 
 @Injectable()
 export class AvSensorService {
@@ -142,6 +146,49 @@ export class AvSensorService {
     }
   }
 
+  // ─── Annotations Processing ────────────────────────────────────────────────
+
+  async processAnnotations(payload: AvAnnotationsPayload): Promise<void> {
+    const annotations: AvAnnotation[] = payload.annotations.map((ann) => ({
+      id: ann.id,
+      category: ann.category as AvAnnotation['category'],
+      categoryFull: ann.category_full,
+      attributes: ann.attributes as AvAnnotation['attributes'],
+      x: ann.x,
+      y: ann.y,
+      z: ann.z,
+      width: ann.width,
+      length: ann.length,
+      height: ann.height,
+      yaw: ann.yaw,
+      distance: ann.distance,
+      color: ann.color,
+      numLidarPts: ann.num_lidar_pts,
+    }));
+
+    const data: AvAnnotationsData = {
+      annotations,
+      timestamp: payload.timestamp,
+      frame: payload.frame,
+      count: payload.count,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Cache in Redis (without full annotations — just metadata)
+    const cacheData = {
+      count: data.count,
+      timestamp: data.timestamp,
+      frame: data.frame,
+      updatedAt: data.updatedAt,
+    };
+    await this.redis.setJson(REDIS_AV_ANNOTATIONS, cacheData, REDIS_TTL_SECONDS);
+
+    // Emit to subscribers (with full annotations)
+    this.gateway.emitAnnotations(data);
+
+    this.logger.debug(`📦 Annotations frame ${data.frame}: ${data.count} objects`);
+  }
+
   // ─── Get Current State ─────────────────────────────────────────────────────
 
   /**
@@ -149,10 +196,11 @@ export class AvSensorService {
    * Useful for new clients that need to catch up.
    */
   async getCurrentState(): Promise<AvVehicleState> {
-    const [gps, lidar, status] = await Promise.all([
+    const [gps, lidar, status, annotations] = await Promise.all([
       this.redis.getJson<AvGpsData>(REDIS_AV_GPS),
       this.redis.getJson<AvLidarData>(REDIS_AV_LIDAR),
       this.redis.getJson<AvStatusData>(REDIS_AV_STATUS),
+      this.redis.getJson<AvAnnotationsData>(REDIS_AV_ANNOTATIONS),
     ]);
 
     // Get all camera channels
@@ -182,6 +230,7 @@ export class AvSensorService {
       cameras,
       lidar: lidar ?? null,
       status: status ?? null,
+      annotations: annotations ?? null,
     };
   }
 }

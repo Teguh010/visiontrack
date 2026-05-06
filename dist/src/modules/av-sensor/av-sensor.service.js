@@ -18,6 +18,7 @@ const REDIS_AV_GPS = "av:gps";
 const REDIS_AV_CAMERA = "av:camera:";
 const REDIS_AV_LIDAR = "av:lidar";
 const REDIS_AV_STATUS = "av:status";
+const REDIS_AV_ANNOTATIONS = "av:annotations";
 const REDIS_TTL_SECONDS = 60 * 5;
 let AvSensorService = AvSensorService_1 = class AvSensorService {
     redis;
@@ -91,11 +92,46 @@ let AvSensorService = AvSensorService_1 = class AvSensorService {
             this.logger.log(`🏁 Scene ${data.scene} finished`);
         }
     }
+    async processAnnotations(payload) {
+        const annotations = payload.annotations.map((ann) => ({
+            id: ann.id,
+            category: ann.category,
+            categoryFull: ann.category_full,
+            attributes: ann.attributes,
+            x: ann.x,
+            y: ann.y,
+            z: ann.z,
+            width: ann.width,
+            length: ann.length,
+            height: ann.height,
+            yaw: ann.yaw,
+            distance: ann.distance,
+            color: ann.color,
+            numLidarPts: ann.num_lidar_pts,
+        }));
+        const data = {
+            annotations,
+            timestamp: payload.timestamp,
+            frame: payload.frame,
+            count: payload.count,
+            updatedAt: new Date().toISOString(),
+        };
+        const cacheData = {
+            count: data.count,
+            timestamp: data.timestamp,
+            frame: data.frame,
+            updatedAt: data.updatedAt,
+        };
+        await this.redis.setJson(REDIS_AV_ANNOTATIONS, cacheData, REDIS_TTL_SECONDS);
+        this.gateway.emitAnnotations(data);
+        this.logger.debug(`📦 Annotations frame ${data.frame}: ${data.count} objects`);
+    }
     async getCurrentState() {
-        const [gps, lidar, status] = await Promise.all([
+        const [gps, lidar, status, annotations] = await Promise.all([
             this.redis.getJson(REDIS_AV_GPS),
             this.redis.getJson(REDIS_AV_LIDAR),
             this.redis.getJson(REDIS_AV_STATUS),
+            this.redis.getJson(REDIS_AV_ANNOTATIONS),
         ]);
         const cameraChannels = [
             'CAM_FRONT',
@@ -118,6 +154,7 @@ let AvSensorService = AvSensorService_1 = class AvSensorService {
             cameras,
             lidar: lidar ?? null,
             status: status ?? null,
+            annotations: annotations ?? null,
         };
     }
 };

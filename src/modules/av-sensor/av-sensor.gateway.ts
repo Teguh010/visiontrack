@@ -30,6 +30,7 @@ import {
   AvCameraData,
   AvLidarData,
   AvStatusData,
+  AvAnnotationsData,
 } from "./dto/av-sensor.dto";
 
 const AV_ROOM = "av-sensor-stream";
@@ -115,5 +116,9 @@ export class AvSensorGateway
 
   emitStatus(data: AvStatusData): void {
     this.server.to(AV_ROOM).emit("av:status", data);
+  }
+
+  emitAnnotations(data: AvAnnotationsData): void {
+    this.server.to(AV_ROOM).emit("av:annotations", data);
   }
 }

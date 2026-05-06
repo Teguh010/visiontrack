@@ -110,4 +110,79 @@ export interface AvVehicleState {
   cameras: Partial<Record<CameraChannel, AvCameraData>>;
   lidar: AvLidarData | null;
   status: AvStatusData | null;
+  annotations: AvAnnotationsData | null;
+}
+
+// ─── Annotation Data (3D Bounding Boxes) ─────────────────────────────────────
+
+export type ObjectCategory = 
+  | 'human'
+  | 'vehicle.car'
+  | 'vehicle.truck'
+  | 'vehicle.bus'
+  | 'vehicle.motorcycle'
+  | 'vehicle.bicycle'
+  | 'movable_object';
+
+export type ObjectAttribute = 
+  | 'vehicle.moving'
+  | 'vehicle.stopped'
+  | 'vehicle.parked'
+  | 'cycle.with_rider'
+  | 'cycle.without_rider'
+  | 'pedestrian.sitting_lying_down'
+  | 'pedestrian.standing'
+  | 'pedestrian.moving';
+
+export interface AvAnnotation {
+  id: string;
+  category: ObjectCategory;
+  categoryFull: string;
+  attributes: ObjectAttribute[];
+  // Position relative to ego vehicle (meters)
+  x: number;
+  y: number;
+  z: number;
+  // Bounding box dimensions (meters)
+  width: number;
+  length: number;
+  height: number;
+  // Rotation relative to ego (degrees)
+  yaw: number;
+  // Distance from ego (meters)
+  distance: number;
+  // Visualization color
+  color: string;
+  // Number of LiDAR points in this object
+  numLidarPts: number;
+}
+
+export interface AvAnnotationsPayload {
+  annotations: {
+    id: string;
+    category: string;
+    category_full: string;
+    attributes: string[];
+    x: number;
+    y: number;
+    z: number;
+    width: number;
+    length: number;
+    height: number;
+    yaw: number;
+    distance: number;
+    color: string;
+    num_lidar_pts: number;
+  }[];
+  timestamp: number;
+  frame: number;
+  count: number;
+}
+
+export interface AvAnnotationsData {
+  annotations: AvAnnotation[];
+  timestamp: number;
+  frame: number;
+  count: number;
+  updatedAt: string;
 }

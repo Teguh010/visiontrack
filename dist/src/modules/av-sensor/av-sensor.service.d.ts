@@ -1,6 +1,6 @@
 import { RedisService } from "../../redis/redis.service";
 import { AvSensorGateway } from "./av-sensor.gateway";
-import { AvGpsPayload, AvCameraPayload, AvLidarPayload, AvStatusPayload, AvVehicleState } from "./dto/av-sensor.dto";
+import { AvGpsPayload, AvCameraPayload, AvLidarPayload, AvStatusPayload, AvAnnotationsPayload, AvVehicleState } from "./dto/av-sensor.dto";
 export declare class AvSensorService {
     private readonly redis;
     private readonly gateway;
@@ -10,5 +10,6 @@ export declare class AvSensorService {
     processCamera(payload: AvCameraPayload): Promise<void>;
     processLidar(payload: AvLidarPayload): Promise<void>;
     processStatus(payload: AvStatusPayload): Promise<void>;
+    processAnnotations(payload: AvAnnotationsPayload): Promise<void>;
     getCurrentState(): Promise<AvVehicleState>;
 }

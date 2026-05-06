@@ -16,4 +16,5 @@ export declare class AvSensorMqtt implements OnModuleInit, OnModuleDestroy {
     private handleCamera;
     private handleLidar;
     private handleStatus;
+    private handleAnnotations;
 }

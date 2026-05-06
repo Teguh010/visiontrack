@@ -82,6 +82,7 @@ let AvSensorMqtt = AvSensorMqtt_1 = class AvSensorMqtt {
                 "vehicle/camera/+",
                 "vehicle/lidar",
                 "vehicle/status",
+                "vehicle/annotations",
             ];
             topics.forEach((topic) => {
                 this.client.subscribe(topic, { qos: 0 }, (err) => {
@@ -125,6 +126,9 @@ let AvSensorMqtt = AvSensorMqtt_1 = class AvSensorMqtt {
             else if (topic === "vehicle/status") {
                 await this.handleStatus(raw);
             }
+            else if (topic === "vehicle/annotations") {
+                await this.handleAnnotations(raw);
+            }
         }
         catch (err) {
             this.logger.error(`❌ Failed to parse MQTT message on ${topic}:`, err);
@@ -163,6 +167,13 @@ let AvSensorMqtt = AvSensorMqtt_1 = class AvSensorMqtt {
             return;
         }
         await this.avSensorService.processStatus(payload);
+    }
+    async handleAnnotations(payload) {
+        if (!payload.annotations || !Array.isArray(payload.annotations)) {
+            this.logger.warn("⚠️ Annotations payload missing annotations array");
+            return;
+        }
+        await this.avSensorService.processAnnotations(payload);
     }
 };
 exports.AvSensorMqtt = AvSensorMqtt;

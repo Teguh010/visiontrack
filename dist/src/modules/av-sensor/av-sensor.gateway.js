@@ -61,6 +61,9 @@ let AvSensorGateway = AvSensorGateway_1 = class AvSensorGateway {
     emitStatus(data) {
         this.server.to(AV_ROOM).emit("av:status", data);
     }
+    emitAnnotations(data) {
+        this.server.to(AV_ROOM).emit("av:annotations", data);
+    }
 };
 exports.AvSensorGateway = AvSensorGateway;
 __decorate([

@@ -6,6 +6,7 @@
  *   vehicle/camera/+         → Camera frames (6 channels)
  *   vehicle/lidar            → LiDAR point cloud
  *   vehicle/status           → Replay status
+ *   vehicle/annotations      → 3D bounding box annotations
  */
 
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from "@nestjs/common";
@@ -19,6 +20,7 @@ import {
   AvCameraPayload,
   AvLidarPayload,
   AvStatusPayload,
+  AvAnnotationsPayload,
   CameraChannel,
 } from "./dto/av-sensor.dto";
 
@@ -60,6 +62,7 @@ export class AvSensorMqtt implements OnModuleInit, OnModuleDestroy {
         "vehicle/camera/+",  // wildcard for all cameras
         "vehicle/lidar",
         "vehicle/status",
+        "vehicle/annotations",
       ];
 
       topics.forEach((topic) => {
@@ -107,6 +110,8 @@ export class AvSensorMqtt implements OnModuleInit, OnModuleDestroy {
         await this.handleLidar(raw as AvLidarPayload);
       } else if (topic === "vehicle/status") {
         await this.handleStatus(raw as AvStatusPayload);
+      } else if (topic === "vehicle/annotations") {
+        await this.handleAnnotations(raw as AvAnnotationsPayload);
       }
     } catch (err) {
       this.logger.error(`❌ Failed to parse MQTT message on ${topic}:`, err);
@@ -159,5 +164,14 @@ export class AvSensorMqtt implements OnModuleInit, OnModuleDestroy {
     }
 
     await this.avSensorService.processStatus(payload);
+  }
+
+  private async handleAnnotations(payload: AvAnnotationsPayload): Promise<void> {
+    if (!payload.annotations || !Array.isArray(payload.annotations)) {
+      this.logger.warn("⚠️ Annotations payload missing annotations array");
+      return;
+    }
+
+    await this.avSensorService.processAnnotations(payload);
   }
 }
