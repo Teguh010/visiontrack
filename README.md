@@ -1,98 +1,342 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+<div align="center">
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+# 🖥️ AV Sensor & Fleet Tracking — Backend
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![MQTT](https://img.shields.io/badge/MQTT-660066?style=for-the-badge&logo=mqtt&logoColor=white)](https://mqtt.org/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=for-the-badge&logo=socketdotio&logoColor=white)](https://socket.io/)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
 
-## Description
+**Real-time backend for Autonomous Vehicle sensor processing & Fleet Tracking**
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+</div>
 
-## Project setup
+---
 
-```bash
-$ npm install
+## 🎯 Overview
+
+NestJS backend that ingests sensor data from autonomous vehicles (via MQTT), processes it in real-time, and broadcasts to connected clients via WebSocket. Supports both AV sensor visualization (nuScenes dataset) and fleet GPS tracking.
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| **MQTT Consumer** | Subscribe to vehicle sensor topics with wildcard support |
+| **Real-time WebSocket** | Socket.IO gateway for instant data broadcast |
+| **Redis Caching** | Latest state cached for fast initial load |
+| **PostgreSQL Storage** | Historical tracking data with Prisma ORM |
+| **Modular Architecture** | Separate modules for AV sensors and fleet tracking |
+| **Type Safety** | Full TypeScript with DTOs and validation |
+
+---
+
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          BACKEND ARCHITECTURE                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                    MQTT Broker (Mosquitto :1883)
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           NestJS Backend (:3000)                             │
+│                                                                              │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐          │
+│  │   MQTT Module   │───▶│  Service Layer  │───▶│ WebSocket Gateway│         │
+│  │                 │    │                 │    │                 │          │
+│  │ • Subscribe     │    │ • Validation    │    │ • Socket.IO     │          │
+│  │ • Parse JSON    │    │ • Transform     │    │ • Namespaces    │          │
+│  │ • Route msgs    │    │ • Business logic│    │ • Broadcast     │          │
+│  └─────────────────┘    └─────────────────┘    └─────────────────┘          │
+│           │                     │                      │                     │
+│           │                     ▼                      │                     │
+│           │           ┌─────────────────┐              │                     │
+│           │           │  Redis Cache    │              │                     │
+│           │           │  (Latest State) │              │                     │
+│           │           └─────────────────┘              │                     │
+│           │                     │                      │                     │
+│           │                     ▼                      ▼                     │
+│           │           ┌─────────────────┐    ┌─────────────────┐            │
+│           │           │   PostgreSQL    │    │    Frontend     │            │
+│           │           │   (History)     │    │    Clients      │            │
+│           └──────────▶└─────────────────┘    └─────────────────┘            │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Compile and run the project
+### Data Flow
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```
+1. MQTT Message Received
+   │
+   ▼
+2. av-sensor.mqtt.ts (or tracking.mqtt.ts)
+   • Parse JSON payload
+   • Validate required fields
+   • Route to appropriate handler
+   │
+   ▼
+3. av-sensor.service.ts
+   • Transform data (e.g., add channel to camera)
+   • Cache latest state to Redis
+   • Optionally save to PostgreSQL
+   │
+   ▼
+4. av-sensor.gateway.ts
+   • Emit event to all connected clients
+   • Namespace: /av for AV sensors, default for fleet
 ```
 
-## Run tests
+---
 
-```bash
-# unit tests
-$ npm run test
+## 📁 Project Structure
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+```
+backend/
+├── src/
+│   ├── app.module.ts           # Root module
+│   ├── main.ts                 # Application entry point
+│   │
+│   ├── modules/
+│   │   ├── av-sensor/          # AV Sensor Module
+│   │   │   ├── av-sensor.module.ts
+│   │   │   ├── av-sensor.mqtt.ts       # MQTT subscriber
+│   │   │   ├── av-sensor.service.ts    # Business logic
+│   │   │   ├── av-sensor.gateway.ts    # WebSocket gateway
+│   │   │   ├── av-sensor.controller.ts # REST endpoints
+│   │   │   └── dto/
+│   │   │       └── av-sensor.dto.ts    # Type definitions
+│   │   │
+│   │   ├── tracking/           # Fleet Tracking Module
+│   │   │   ├── tracking.module.ts
+│   │   │   ├── tracking.mqtt.ts
+│   │   │   ├── tracking.service.ts
+│   │   │   └── tracking.gateway.ts
+│   │   │
+│   │   └── vehicle/            # Vehicle Management
+│   │       ├── vehicle.module.ts
+│   │       ├── vehicle.service.ts
+│   │       └── vehicle.controller.ts
+│   │
+│   ├── prisma/                 # Database Service
+│   │   ├── prisma.module.ts
+│   │   └── prisma.service.ts
+│   │
+│   └── redis/                  # Cache Service
+│       ├── redis.module.ts
+│       └── redis.service.ts
+│
+├── prisma/
+│   ├── schema.prisma           # Database schema
+│   └── migrations/             # Database migrations
+│
+└── test/                       # E2E tests
 ```
 
-## Deployment
+---
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## 📡 MQTT Topics
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### AV Sensor Topics
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+| Topic | Description | Handler |
+|-------|-------------|---------|
+| `vehicle/gps` | Ego vehicle position | `handleGps()` |
+| `vehicle/camera/+` | Camera frames (6 channels) | `handleCamera()` |
+| `vehicle/lidar` | LiDAR point cloud | `handleLidar()` |
+| `vehicle/status` | Replay status | `handleStatus()` |
+| `vehicle/annotations` | 3D object detections | `handleAnnotations()` |
+
+### Fleet Tracking Topics
+
+| Topic | Description | Handler |
+|-------|-------------|---------|
+| `vehicle/+/location` | Vehicle GPS position | `handleLocation()` |
+
+---
+
+## 🔌 WebSocket Events
+
+### Namespace: `/av` (AV Sensors)
+
+| Event | Direction | Payload |
+|-------|-----------|---------|
+| `av:gps` | Server → Client | `AvGpsData` |
+| `av:camera` | Server → Client | `AvCameraData` |
+| `av:lidar` | Server → Client | `AvLidarData` |
+| `av:status` | Server → Client | `AvStatusData` |
+| `av:annotations` | Server → Client | `AvAnnotationsData` |
+
+### Default Namespace (Fleet Tracking)
+
+| Event | Direction | Payload |
+|-------|-----------|---------|
+| `vehicle:update` | Server → Client | `VehiclePosition` |
+| `vehicle:stopped` | Server → Client | `StopEvent` |
+
+---
+
+## 🗄️ Database Schema
+
+```prisma
+model Vehicle {
+  id          String   @id @default(cuid())
+  vehicleId   String   @unique
+  name        String?
+  type        VehicleType @default(DELIVERY)
+  status      VehicleStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  trackingHistory TrackingHistory[]
+}
+
+model TrackingHistory {
+  id        String   @id @default(cuid())
+  vehicleId String
+  lat       Float
+  lon       Float
+  speed     Float?
+  heading   Float?
+  status    String?
+  timestamp DateTime
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [vehicleId])
+}
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Resources
+## 🚀 Quick Start
 
-Check out a few resources that may come in handy when working with NestJS:
+### Prerequisites
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- Node.js 18+
+- Docker (for Mosquitto, Redis, PostgreSQL)
 
-## Support
+### Installation
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+# Install dependencies
+npm install
 
-## Stay in touch
+# Setup database
+npx prisma migrate dev
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# Run in development mode
+npm run start:dev
 
-## License
+# Build for production
+npm run build
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+# Run production
+npm run start:prod
+```
+
+### Environment Variables
+
+Create `.env`:
+
+```env
+# Database
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tracking?schema=public"
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# MQTT
+MQTT_BROKER_URL=mqtt://localhost:1883
+```
+
+---
+
+## 🛠 Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| **NestJS** | Modular Node.js framework with DI |
+| **TypeScript** | Type safety |
+| **Socket.IO** | Real-time WebSocket server |
+| **MQTT.js** | MQTT client for broker communication |
+| **Prisma** | Type-safe ORM for PostgreSQL |
+| **Redis (ioredis)** | In-memory caching |
+| **class-validator** | DTO validation |
+
+---
+
+## 📊 Key Modules
+
+### AvSensorModule
+
+Handles all autonomous vehicle sensor data:
+
+```typescript
+@Module({
+  imports: [RedisModule, PrismaModule],
+  providers: [AvSensorMqtt, AvSensorService, AvSensorGateway],
+  controllers: [AvSensorController],
+  exports: [AvSensorService],
+})
+export class AvSensorModule {}
+```
+
+**Service Methods:**
+- `processGps(payload)` — Cache GPS, emit to clients
+- `processCamera(payload)` — Cache camera frame, emit
+- `processLidar(payload)` — Cache point cloud, emit
+- `processAnnotations(payload)` — Cache detections, emit
+- `getCurrentState()` — Get latest state from Redis
+
+### TrackingModule
+
+Handles fleet GPS tracking:
+
+```typescript
+@Module({
+  imports: [RedisModule, PrismaModule, VehicleModule],
+  providers: [TrackingMqtt, TrackingService, TrackingGateway],
+  controllers: [TrackingController],
+})
+export class TrackingModule {}
+```
+
+**Features:**
+- Stop detection (speed < 5 km/h for 2+ min)
+- History storage to PostgreSQL
+- Redis cache for latest positions
+
+---
+
+## 🔧 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/av-sensor/state` | Current AV sensor state |
+| `GET` | `/api/vehicles` | List all vehicles |
+| `GET` | `/api/tracking/latest` | Latest vehicle positions |
+| `GET` | `/api/tracking/history` | Historical tracking data |
+
+---
+
+## 📄 License
+
+MIT License
+
+---
+
+## 👤 Author
+
+Fullstack Developer specializing in **NestJS**, **Next.js**, and **GIS/AV Systems**
+
+---
+
+<div align="center">
+
+*Part of the Real-Time AV Sensor & Fleet Tracking System*
+
+</div>
