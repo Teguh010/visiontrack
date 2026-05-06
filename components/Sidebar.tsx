@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MapPin, History, BarChart2, Truck, Radio, FileText } from "lucide-react";
+import { MapPin, History, BarChart2, Truck, Radio, FileText, Car } from "lucide-react";
 
 const navItems = [
   { href: "/",          icon: MapPin,    label: "Live Map"   },
+  { href: "/av",        icon: Car,       label: "AV Sensors" },
   { href: "/history",   icon: History,   label: "History"    },
   { href: "/analytics", icon: BarChart2, label: "Analytics"  },
   { href: "/reports",   icon: FileText,  label: "Reports"    },
