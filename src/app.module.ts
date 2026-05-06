@@ -5,6 +5,7 @@ import { RedisModule } from "./redis/redis.module";
 import { VehicleModule } from "./modules/vehicle/vehicle.module";
 import { TrackingModule } from "./modules/tracking/tracking.module";
 import { ReportsModule } from "./modules/reports/reports.module";
+import { AvSensorModule } from "./modules/av-sensor/av-sensor.module";
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ReportsModule } from "./modules/reports/reports.module";
     VehicleModule,
     TrackingModule,
     ReportsModule,
+    AvSensorModule,
   ],
 })
 export class AppModule {}

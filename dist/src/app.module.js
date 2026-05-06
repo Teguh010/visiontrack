@@ -14,6 +14,7 @@ const redis_module_1 = require("./redis/redis.module");
 const vehicle_module_1 = require("./modules/vehicle/vehicle.module");
 const tracking_module_1 = require("./modules/tracking/tracking.module");
 const reports_module_1 = require("./modules/reports/reports.module");
+const av_sensor_module_1 = require("./modules/av-sensor/av-sensor.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -26,6 +27,7 @@ exports.AppModule = AppModule = __decorate([
             vehicle_module_1.VehicleModule,
             tracking_module_1.TrackingModule,
             reports_module_1.ReportsModule,
+            av_sensor_module_1.AvSensorModule,
         ],
     })
 ], AppModule);
