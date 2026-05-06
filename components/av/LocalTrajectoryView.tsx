@@ -145,7 +145,9 @@ export function LocalTrajectoryView({ gps, width = 288, height = 200 }: LocalTra
     // Vehicle triangle pointing in heading direction
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(((gps.heading - 90) * Math.PI) / 180); // Adjust for canvas coordinates
+    // nuScenes heading: 0=East, 90=North. Triangle drawn pointing right (+X)
+    // Canvas: positive rotation = clockwise. Y is flipped in toCanvas.
+    ctx.rotate((-gps.heading * Math.PI) / 180);
 
     ctx.fillStyle = "#10b981";
     ctx.beginPath();

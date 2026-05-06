@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AvLidarData, LidarPoint } from "@/types/av-sensor";
-import { Radar, RotateCcw } from "lucide-react";
+import { AvLidarData, AvAnnotationsData, AvAnnotation, LidarPoint } from "@/types/av-sensor";
+import { Radar, RotateCcw, Box } from "lucide-react";
 
 type ViewMode = "top" | "front" | "side" | "3d";
 
 interface LidarViewProps {
   lidar: AvLidarData | null;
+  annotations?: AvAnnotationsData | null;
   width?: number;
   height?: number;
 }
@@ -19,10 +20,11 @@ const VIEW_LABELS: Record<ViewMode, string> = {
   "3d": "3D Perspective",
 };
 
-export function LidarView({ lidar, width = 300, height = 300 }: LidarViewProps) {
+export function LidarView({ lidar, annotations, width = 300, height = 300 }: LidarViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("top");
   const [rotation, setRotation] = useState(0); // For 3D view rotation
+  const [showBoxes, setShowBoxes] = useState(true); // Toggle bounding boxes
 
   // Auto-rotate 3D view
   useEffect(() => {
@@ -114,7 +116,12 @@ export function LidarView({ lidar, width = 300, height = 300 }: LidarViewProps) 
       ctx.arc(screenX, screenY, viewMode === "3d" ? 1.2 : 1.5, 0, Math.PI * 2);
       ctx.fill();
     });
-  }, [lidar, width, height, viewMode, rotation]);
+
+    // Draw 3D bounding boxes for detected objects
+    if (showBoxes && annotations?.annotations) {
+      drawBoundingBoxes(ctx, annotations.annotations, centerX, centerY, scaleXY, scaleZ, viewMode, rotation, width, height);
+    }
+  }, [lidar, annotations, width, height, viewMode, rotation, showBoxes]);
 
   const cycleView = () => {
     const views: ViewMode[] = ["top", "front", "side", "3d"];
@@ -130,13 +137,26 @@ export function LidarView({ lidar, width = 300, height = 300 }: LidarViewProps) 
           <Radar className="w-3 h-3" />
           LiDAR {VIEW_LABELS[viewMode]}
         </div>
-        <button
-          onClick={cycleView}
-          className="bg-black/60 hover:bg-black/80 px-2 py-1 rounded text-xs text-white flex items-center gap-1 transition-colors"
-        >
-          <RotateCcw className="w-3 h-3" />
-          Switch View
-        </button>
+        <div className="flex gap-1">
+          <button
+            onClick={() => setShowBoxes(!showBoxes)}
+            className={`px-2 py-1 rounded text-xs flex items-center gap-1 transition-colors ${
+              showBoxes 
+                ? "bg-amber-500/80 text-white" 
+                : "bg-black/60 hover:bg-black/80 text-gray-400"
+            }`}
+            title="Toggle 3D bounding boxes"
+          >
+            <Box className="w-3 h-3" />
+            {annotations?.count ?? 0}
+          </button>
+          <button
+            onClick={cycleView}
+            className="bg-black/60 hover:bg-black/80 px-2 py-1 rounded text-xs text-white flex items-center gap-1 transition-colors"
+          >
+            <RotateCcw className="w-3 h-3" />
+          </button>
+        </div>
       </div>
 
       <canvas
@@ -294,4 +314,148 @@ function drawVehicle(
     ctx.arc(centerX, centerY + 20, 5, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+// ─── Helper: Draw 3D Bounding Boxes ───────────────────────────────────────────
+
+function drawBoundingBoxes(
+  ctx: CanvasRenderingContext2D,
+  annotations: AvAnnotation[],
+  centerX: number,
+  centerY: number,
+  scaleXY: number,
+  scaleZ: number,
+  mode: ViewMode,
+  rotation: number,
+  width: number,
+  height: number
+) {
+  annotations.forEach((ann) => {
+    const { x, y, z, width: w, length: l, height: h, yaw, color, category, distance } = ann;
+
+    ctx.strokeStyle = color || "#f59e0b";
+    ctx.lineWidth = 1.5;
+
+    if (mode === "top") {
+      // Top-down view: draw rotated rectangle
+      const screenX = centerX - y * scaleXY;
+      const screenY = centerY - x * scaleXY;
+      const boxW = l * scaleXY; // length along x
+      const boxH = w * scaleXY; // width along y
+
+      ctx.save();
+      ctx.translate(screenX, screenY);
+      ctx.rotate(-yaw); // Canvas rotation is clockwise
+
+      // Draw rotated bounding box
+      ctx.strokeRect(-boxW / 2, -boxH / 2, boxW, boxH);
+
+      // Draw direction indicator (front of object)
+      ctx.fillStyle = color || "#f59e0b";
+      ctx.beginPath();
+      ctx.moveTo(boxW / 2, 0);
+      ctx.lineTo(boxW / 2 - 4, -3);
+      ctx.lineTo(boxW / 2 - 4, 3);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+
+      // Draw category label
+      ctx.fillStyle = color || "#f59e0b";
+      ctx.font = "9px sans-serif";
+      const label = `${category.split(".").pop()} ${distance.toFixed(0)}m`;
+      ctx.fillText(label, screenX - ctx.measureText(label).width / 2, screenY - boxH / 2 - 4);
+
+    } else if (mode === "front") {
+      // Front view: y = left/right, z = up/down
+      const screenX = centerX - y * scaleXY;
+      const screenY = centerY - z * scaleZ - 30;
+      const boxW = w * scaleXY;  // width
+      const boxH = h * scaleZ;   // height
+
+      // Draw rectangle
+      ctx.strokeRect(screenX - boxW / 2, screenY - boxH / 2, boxW, boxH);
+
+      // Label
+      ctx.fillStyle = color || "#f59e0b";
+      ctx.font = "9px sans-serif";
+      const label = category.split(".").pop() || category;
+      ctx.fillText(label, screenX - ctx.measureText(label).width / 2, screenY - boxH / 2 - 3);
+
+    } else if (mode === "side") {
+      // Side view: x = forward/back, z = up/down
+      const screenX = centerX + x * scaleXY;
+      const screenY = centerY - z * scaleZ - 30;
+      const boxW = l * scaleXY;  // length
+      const boxH = h * scaleZ;   // height
+
+      ctx.strokeRect(screenX - boxW / 2, screenY - boxH / 2, boxW, boxH);
+
+      // Label
+      ctx.fillStyle = color || "#f59e0b";
+      ctx.font = "9px sans-serif";
+      const label = `${distance.toFixed(0)}m`;
+      ctx.fillText(label, screenX - ctx.measureText(label).width / 2, screenY - boxH / 2 - 3);
+
+    } else if (mode === "3d") {
+      // 3D projection with rotation
+      const rad = (rotation * Math.PI) / 180;
+
+      // Transform 8 corners of bounding box
+      const halfL = l / 2;
+      const halfW = w / 2;
+      const halfH = h / 2;
+
+      // Local corners (before yaw rotation)
+      const corners = [
+        [-halfL, -halfW, -halfH],
+        [halfL, -halfW, -halfH],
+        [halfL, halfW, -halfH],
+        [-halfL, halfW, -halfH],
+        [-halfL, -halfW, halfH],
+        [halfL, -halfW, halfH],
+        [halfL, halfW, halfH],
+        [-halfL, halfW, halfH],
+      ];
+
+      // Apply yaw rotation and translate to position
+      const cosYaw = Math.cos(yaw);
+      const sinYaw = Math.sin(yaw);
+
+      const worldCorners = corners.map(([lx, ly, lz]) => {
+        const rx = lx * cosYaw - ly * sinYaw + x;
+        const ry = lx * sinYaw + ly * cosYaw + y;
+        const rz = lz + z;
+        return [rx, ry, rz];
+      });
+
+      // Project to screen with view rotation
+      const project = (wx: number, wy: number, wz: number) => {
+        const rotX = wx * Math.cos(rad) - wy * Math.sin(rad);
+        const rotY = wx * Math.sin(rad) + wy * Math.cos(rad);
+        const sx = centerX + (rotY - rotX) * scaleXY * 0.5;
+        const sy = centerY - wz * scaleZ * 0.8 - (rotX + rotY) * scaleXY * 0.25;
+        return [sx, sy];
+      };
+
+      const screenCorners = worldCorners.map(([wx, wy, wz]) => project(wx, wy, wz));
+
+      // Draw 12 edges of the box
+      const edges = [
+        [0, 1], [1, 2], [2, 3], [3, 0], // bottom
+        [4, 5], [5, 6], [6, 7], [7, 4], // top
+        [0, 4], [1, 5], [2, 6], [3, 7], // verticals
+      ];
+
+      ctx.beginPath();
+      edges.forEach(([i, j]) => {
+        const [x1, y1] = screenCorners[i];
+        const [x2, y2] = screenCorners[j];
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+      });
+      ctx.stroke();
+    }
+  });
 }

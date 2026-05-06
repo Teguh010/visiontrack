@@ -7,6 +7,7 @@ import {
   AvCameraData,
   AvLidarData,
   AvStatusData,
+  AvAnnotationsData,
   CameraChannel,
 } from "@/types/av-sensor";
 
@@ -17,6 +18,7 @@ export interface AvSensorState {
   cameras: Map<CameraChannel, AvCameraData>;
   lidar: AvLidarData | null;
   status: AvStatusData | null;
+  annotations: AvAnnotationsData | null;
   connected: boolean;
 }
 
@@ -27,6 +29,7 @@ export function useAvSensorSocket() {
   const [cameras, setCameras] = useState<Map<CameraChannel, AvCameraData>>(new Map());
   const [lidar, setLidar] = useState<AvLidarData | null>(null);
   const [status, setStatus] = useState<AvStatusData | null>(null);
+  const [annotations, setAnnotations] = useState<AvAnnotationsData | null>(null);
 
   useEffect(() => {
     // Connect to the /av namespace
@@ -75,6 +78,11 @@ export function useAvSensorSocket() {
       setStatus(data);
     });
 
+    // Annotations updates (3D bounding boxes)
+    socket.on("av:annotations", (data: AvAnnotationsData) => {
+      setAnnotations(data);
+    });
+
     return () => {
       socket.emit("av:unsubscribe");
       socket.disconnect();
@@ -95,6 +103,7 @@ export function useAvSensorSocket() {
     cameras,
     lidar,
     status,
+    annotations,
     getCamera,
   };
 }

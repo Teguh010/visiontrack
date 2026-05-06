@@ -8,9 +8,15 @@ import { AvGpsData } from "@/types/av-sensor";
 
 // ─── AV Vehicle Icon (autonomous car, top-down view) ─────────────────────────
 
-function getAvCarIcon(): L.DivIcon {
+function getAvCarIcon(heading: number): L.DivIcon {
+  // Convert nuScenes heading (0=East, 90=North) to CSS rotation (0=North)
+  // CSS rotation: 0=up, positive=clockwise
+  // nuScenes: 0=East (right), 90=North (up)
+  // So: cssRotation = 90 - heading
+  const rotation = 90 - heading;
+  
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="44" viewBox="0 0 28 44">
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="44" viewBox="0 0 28 44" style="transform: rotate(${rotation}deg); transform-origin: center;">
       <!-- glow -->
       <ellipse cx="14" cy="22" rx="13" ry="21" fill="#10b981" opacity="0.4" filter="url(#blur)"/>
       <!-- body -->
@@ -80,8 +86,6 @@ export default function AvMiniMapInner({ gps }: AvMiniMapInnerProps) {
     ? [gps.lat, gps.lon]
     : null;
 
-  const icon = getAvCarIcon();
-
   return (
     <MapContainer
       center={position ?? defaultCenter}
@@ -100,9 +104,7 @@ export default function AvMiniMapInner({ gps }: AvMiniMapInnerProps) {
           <MapPanner position={position} heading={gps?.heading ?? 0} />
           <Marker
             position={position}
-            icon={icon}
-            rotationAngle={gps?.heading ?? 0}
-            rotationOrigin="center"
+            icon={getAvCarIcon(gps?.heading ?? 0)}
           >
             <Popup>
               <div className="text-sm">

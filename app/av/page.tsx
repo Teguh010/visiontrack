@@ -12,13 +12,14 @@ import { StatusPanel } from "@/components/av/StatusPanel";
 import { AvMiniMap } from "@/components/av/AvMiniMap";
 import { LocalTrajectoryView } from "@/components/av/LocalTrajectoryView";
 import { NuScenesMapView } from "@/components/av/NuScenesMapView";
-import { Wifi, WifiOff, Car, Camera, Radar, MapPin, Navigation, Map, Layers } from "lucide-react";
+import { BirdEyeView } from "@/components/av/BirdEyeView";
+import { Wifi, WifiOff, Car, Camera, Radar, MapPin, Navigation, Map, Layers, Eye } from "lucide-react";
 
-type MapMode = "trajectory" | "nuscenes" | "world";
+type MapMode = "trajectory" | "bev" | "world";
 
 export default function AvDashboardPage() {
-  const { connected, gps, cameras, lidar, status } = useAvSensorSocket();
-  const [mapMode, setMapMode] = useState<MapMode>("nuscenes");
+  const { connected, gps, cameras, lidar, status, annotations } = useAvSensorSocket();
+  const [mapMode, setMapMode] = useState<MapMode>("bev");
 
   return (
     <div className="flex flex-col h-screen p-4 gap-4 overflow-hidden">
@@ -126,11 +127,11 @@ export default function AvDashboardPage() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   {mapMode === "trajectory" && <Navigation className="w-4 h-4 text-emerald-400" />}
-                  {mapMode === "nuscenes" && <Layers className="w-4 h-4 text-emerald-400" />}
+                  {mapMode === "bev" && <Eye className="w-4 h-4 text-emerald-400" />}
                   {mapMode === "world" && <Map className="w-4 h-4 text-emerald-400" />}
                   <h2 className="text-sm font-semibold text-gray-300">
                     {mapMode === "trajectory" && "Local Trajectory"}
-                    {mapMode === "nuscenes" && "nuScenes Map"}
+                    {mapMode === "bev" && "Bird's Eye View"}
                     {mapMode === "world" && "World Map"}
                   </h2>
                 </div>
@@ -148,15 +149,15 @@ export default function AvDashboardPage() {
                     Trail
                   </button>
                   <button
-                    onClick={() => setMapMode("nuscenes")}
+                    onClick={() => setMapMode("bev")}
                     className={`px-1.5 py-0.5 rounded text-[9px] transition-colors ${
-                      mapMode === "nuscenes"
+                      mapMode === "bev"
                         ? "bg-emerald-500 text-white"
                         : "bg-gray-700 text-gray-400 hover:bg-gray-600"
                     }`}
-                    title="nuScenes semantic map"
+                    title="Bird's Eye View"
                   >
-                    nuScenes
+                    BEV
                   </button>
                   <button
                     onClick={() => setMapMode("world")}
@@ -174,8 +175,8 @@ export default function AvDashboardPage() {
               {mapMode === "trajectory" && (
                 <LocalTrajectoryView gps={gps} width={288} height={200} />
               )}
-              {mapMode === "nuscenes" && (
-                <NuScenesMapView gps={gps} width={288} height={200} />
+              {mapMode === "bev" && (
+                <BirdEyeView gps={gps} width={288} height={200} />
               )}
               {mapMode === "world" && (
                 <>
@@ -195,7 +196,7 @@ export default function AvDashboardPage() {
                   LiDAR View
                 </h2>
               </div>
-              <LidarView lidar={lidar} width={288} height={288} />
+              <LidarView lidar={lidar} annotations={annotations} width={288} height={288} />
             </div>
           </div>
         </div>
