@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useAvSensorSocket } from "@/hooks/useAvSensorSocket";
 import { CameraGrid } from "@/components/av/CameraGrid";
 import { LidarView } from "@/components/av/LidarView";
+import { LidarMultiView } from "@/components/av/LidarMultiView";
 import { StatusPanel } from "@/components/av/StatusPanel";
 import { AvMiniMap } from "@/components/av/AvMiniMap";
 import { LocalTrajectoryView } from "@/components/av/LocalTrajectoryView";
@@ -188,15 +189,14 @@ export default function AvDashboardPage() {
               )}
             </div>
 
-            {/* LiDAR View */}
+            {/* LiDAR Multi-View */}
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Radar className="w-4 h-4 text-purple-400" />
-                <h2 className="text-sm font-semibold text-gray-300">
-                  LiDAR View
-                </h2>
-              </div>
-              <LidarView lidar={lidar} annotations={annotations} width={288} height={288} />
+              <LidarMultiView 
+                lidar={lidar} 
+                annotations={annotations} 
+                width={340} 
+                height={420} 
+              />
             </div>
           </div>
         </div>
