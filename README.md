@@ -1,36 +1,212 @@
-# Real-Time Fleet Tracking System
+<div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://github.com/teguhbadru/realtime-tracking-system/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
-[![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+# 🖥️ AV Sensor & Fleet Tracking — Backend
 
-> **Built with:** MQTT · NestJS · WebSocket · Redis · PostgreSQL · Next.js · Leaflet.js
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![MQTT](https://img.shields.io/badge/MQTT-660066?style=for-the-badge&logo=mqtt&logoColor=white)](https://mqtt.org/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?style=for-the-badge&logo=socketdotio&logoColor=white)](https://socket.io/)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/)
 
-A production-grade real-time fleet tracking system demonstrating IoT data ingestion, real-time communication, and geospatial visualization.
+**Real-time backend for Autonomous Vehicle sensor processing & Fleet Tracking**
+
+</div>
 
 ---
 
-## 🏗️ Architecture
+## 🎯 Overview
+
+NestJS backend that ingests sensor data from autonomous vehicles (via MQTT), processes it in real-time, and broadcasts to connected clients via WebSocket. Supports both AV sensor visualization (nuScenes dataset) and fleet GPS tracking.
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| **MQTT Consumer** | Subscribe to vehicle sensor topics with wildcard support |
+| **Real-time WebSocket** | Socket.IO gateway for instant data broadcast |
+| **Redis Caching** | Latest state cached for fast initial load |
+| **PostgreSQL Storage** | Historical tracking data with Prisma ORM |
+| **Modular Architecture** | Separate modules for AV sensors and fleet tracking |
+| **Type Safety** | Full TypeScript with DTOs and validation |
+
+---
+
+## 🏗 Architecture
 
 ```
-[GPS Simulator (Node.js)]
-        │ MQTT publish every 3s
-        ▼
-[Mosquitto Broker :1883]
-        │ subscribe wildcard vehicle/+/location
-        ▼
-[NestJS Backend :3000]
- ├── MQTT Consumer → parse & normalize
- ├── Stop Detection (speed < 5 km/h for 2 min)
- ├── Redis :6379 ← last position cache (fast reads)
- ├── PostgreSQL :5432 ← tracking history
- └── WebSocket Gateway (Socket.IO)
-        │ emit vehicle:update
-        ▼
-[Next.js Dashboard :3001]
- ├── Live Map (Leaflet.js) — markers update in real-time
- ├── History Playback — polyline trajectory
- └── Analytics — speed chart + stop detection
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          BACKEND ARCHITECTURE                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                    MQTT Broker (Mosquitto :1883)
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           NestJS Backend (:3000)                             │
+│                                                                              │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐          │
+│  │   MQTT Module   │───▶│  Service Layer  │───▶│ WebSocket Gateway│         │
+│  │                 │    │                 │    │                 │          │
+│  │ • Subscribe     │    │ • Validation    │    │ • Socket.IO     │          │
+│  │ • Parse JSON    │    │ • Transform     │    │ • Namespaces    │          │
+│  │ • Route msgs    │    │ • Business logic│    │ • Broadcast     │          │
+│  └─────────────────┘    └─────────────────┘    └─────────────────┘          │
+│           │                     │                      │                     │
+│           │                     ▼                      │                     │
+│           │           ┌─────────────────┐              │                     │
+│           │           │  Redis Cache    │              │                     │
+│           │           │  (Latest State) │              │                     │
+│           │           └─────────────────┘              │                     │
+│           │                     │                      │                     │
+│           │                     ▼                      ▼                     │
+│           │           ┌─────────────────┐    ┌─────────────────┐            │
+│           │           │   PostgreSQL    │    │    Frontend     │            │
+│           │           │   (History)     │    │    Clients      │            │
+│           └──────────▶└─────────────────┘    └─────────────────┘            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+```
+1. MQTT Message Received
+   │
+   ▼
+2. av-sensor.mqtt.ts (or tracking.mqtt.ts)
+   • Parse JSON payload
+   • Validate required fields
+   • Route to appropriate handler
+   │
+   ▼
+3. av-sensor.service.ts
+   • Transform data (e.g., add channel to camera)
+   • Cache latest state to Redis
+   • Optionally save to PostgreSQL
+   │
+   ▼
+4. av-sensor.gateway.ts
+   • Emit event to all connected clients
+   • Namespace: /av for AV sensors, default for fleet
+```
+
+---
+
+## 📁 Project Structure
+
+```
+backend/
+├── src/
+│   ├── app.module.ts           # Root module
+│   ├── main.ts                 # Application entry point
+│   │
+│   ├── modules/
+│   │   ├── av-sensor/          # AV Sensor Module
+│   │   │   ├── av-sensor.module.ts
+│   │   │   ├── av-sensor.mqtt.ts       # MQTT subscriber
+│   │   │   ├── av-sensor.service.ts    # Business logic
+│   │   │   ├── av-sensor.gateway.ts    # WebSocket gateway
+│   │   │   ├── av-sensor.controller.ts # REST endpoints
+│   │   │   └── dto/
+│   │   │       └── av-sensor.dto.ts    # Type definitions
+│   │   │
+│   │   ├── tracking/           # Fleet Tracking Module
+│   │   │   ├── tracking.module.ts
+│   │   │   ├── tracking.mqtt.ts
+│   │   │   ├── tracking.service.ts
+│   │   │   └── tracking.gateway.ts
+│   │   │
+│   │   └── vehicle/            # Vehicle Management
+│   │       ├── vehicle.module.ts
+│   │       ├── vehicle.service.ts
+│   │       └── vehicle.controller.ts
+│   │
+│   ├── prisma/                 # Database Service
+│   │   ├── prisma.module.ts
+│   │   └── prisma.service.ts
+│   │
+│   └── redis/                  # Cache Service
+│       ├── redis.module.ts
+│       └── redis.service.ts
+│
+├── prisma/
+│   ├── schema.prisma           # Database schema
+│   └── migrations/             # Database migrations
+│
+└── test/                       # E2E tests
+```
+
+---
+
+## 📡 MQTT Topics
+
+### AV Sensor Topics
+
+| Topic | Description | Handler |
+|-------|-------------|---------|
+| `vehicle/gps` | Ego vehicle position | `handleGps()` |
+| `vehicle/camera/+` | Camera frames (6 channels) | `handleCamera()` |
+| `vehicle/lidar` | LiDAR point cloud | `handleLidar()` |
+| `vehicle/status` | Replay status | `handleStatus()` |
+| `vehicle/annotations` | 3D object detections | `handleAnnotations()` |
+
+### Fleet Tracking Topics
+
+| Topic | Description | Handler |
+|-------|-------------|---------|
+| `vehicle/+/location` | Vehicle GPS position | `handleLocation()` |
+
+---
+
+## 🔌 WebSocket Events
+
+### Namespace: `/av` (AV Sensors)
+
+| Event | Direction | Payload |
+|-------|-----------|---------|
+| `av:gps` | Server → Client | `AvGpsData` |
+| `av:camera` | Server → Client | `AvCameraData` |
+| `av:lidar` | Server → Client | `AvLidarData` |
+| `av:status` | Server → Client | `AvStatusData` |
+| `av:annotations` | Server → Client | `AvAnnotationsData` |
+
+### Default Namespace (Fleet Tracking)
+
+| Event | Direction | Payload |
+|-------|-----------|---------|
+| `vehicle:update` | Server → Client | `VehiclePosition` |
+| `vehicle:stopped` | Server → Client | `StopEvent` |
+
+---
+
+## 🗄️ Database Schema
+
+```prisma
+model Vehicle {
+  id          String   @id @default(cuid())
+  vehicleId   String   @unique
+  name        String?
+  type        VehicleType @default(DELIVERY)
+  status      VehicleStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  trackingHistory TrackingHistory[]
+}
+
+model TrackingHistory {
+  id        String   @id @default(cuid())
+  vehicleId String
+  lat       Float
+  lon       Float
+  speed     Float?
+  heading   Float?
+  status    String?
+  timestamp DateTime
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [vehicleId])
+}
 ```
 
 ---
@@ -38,145 +214,129 @@ A production-grade real-time fleet tracking system demonstrating IoT data ingest
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Docker Desktop (running)
+
 - Node.js 18+
+- Docker (for Mosquitto, Redis, PostgreSQL)
 
-### 1. Start Infrastructure (Mosquitto + Redis + PostgreSQL)
-```bash
-docker compose up -d
-```
+### Installation
 
-### 2. Start Backend
 ```bash
-cd backend
+# Install dependencies
 npm install
-npx prisma migrate dev --name init   # first time only
+
+# Setup database
+npx prisma migrate dev
+
+# Run in development mode
 npm run start:dev
+
+# Build for production
+npm run build
+
+# Run production
+npm run start:prod
 ```
 
-### 3. Start GPS Simulator
-```bash
-cd simulator
-npm install
-npm start
-```
+### Environment Variables
 
-### 4. Start Frontend
-```bash
-cd frontend
-npm install
-npm run dev -- --port 3001
-```
+Create `.env`:
 
-### 5. Open Dashboard
-```
-http://localhost:3001
-```
+```env
+# Database
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/tracking?schema=public"
 
----
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
 
-## 📡 MQTT Protocol
-
-**Topic:** `vehicle/{vehicleId}/location`
-
-**Payload:**
-```json
-{
-  "vehicleId": "VH-001",
-  "lat": -7.2575,
-  "lon": 112.7521,
-  "speed": 45.2,
-  "heading": 90,
-  "status": "MOVING",
-  "timestamp": 1714210000
-}
+# MQTT
+MQTT_BROKER_URL=mqtt://localhost:1883
 ```
 
 ---
 
-## 🌐 API Endpoints
+## 🛠 Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| **NestJS** | Modular Node.js framework with DI |
+| **TypeScript** | Type safety |
+| **Socket.IO** | Real-time WebSocket server |
+| **MQTT.js** | MQTT client for broker communication |
+| **Prisma** | Type-safe ORM for PostgreSQL |
+| **Redis (ioredis)** | In-memory caching |
+| **class-validator** | DTO validation |
+
+---
+
+## 📊 Key Modules
+
+### AvSensorModule
+
+Handles all autonomous vehicle sensor data:
+
+```typescript
+@Module({
+  imports: [RedisModule, PrismaModule],
+  providers: [AvSensorMqtt, AvSensorService, AvSensorGateway],
+  controllers: [AvSensorController],
+  exports: [AvSensorService],
+})
+export class AvSensorModule {}
+```
+
+**Service Methods:**
+- `processGps(payload)` — Cache GPS, emit to clients
+- `processCamera(payload)` — Cache camera frame, emit
+- `processLidar(payload)` — Cache point cloud, emit
+- `processAnnotations(payload)` — Cache detections, emit
+- `getCurrentState()` — Get latest state from Redis
+
+### TrackingModule
+
+Handles fleet GPS tracking:
+
+```typescript
+@Module({
+  imports: [RedisModule, PrismaModule, VehicleModule],
+  providers: [TrackingMqtt, TrackingService, TrackingGateway],
+  controllers: [TrackingController],
+})
+export class TrackingModule {}
+```
+
+**Features:**
+- Stop detection (speed < 5 km/h for 2+ min)
+- History storage to PostgreSQL
+- Redis cache for latest positions
+
+---
+
+## 🔧 API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/vehicles` | List all registered vehicles |
-| `GET` | `/api/tracking/latest` | Last position of all vehicles (from Redis) |
-| `GET` | `/api/tracking/history?vehicleId=VH-001&from=...&to=...` | Historical tracking points |
-
-**WebSocket Event (Server → Client):**
-```
-vehicle:update → LastPosition object
-```
+| `GET` | `/api/av-sensor/state` | Current AV sensor state |
+| `GET` | `/api/vehicles` | List all vehicles |
+| `GET` | `/api/tracking/latest` | Latest vehicle positions |
+| `GET` | `/api/tracking/history` | Historical tracking data |
 
 ---
 
-## 🗂️ Project Structure
+## 📄 License
 
-```
-realtime-tracking-system/
-├── docker-compose.yml          ← Mosquitto + Redis + PostgreSQL
-├── mosquitto/config/           ← MQTT broker config
-│
-├── backend/                    ← NestJS API
-│   ├── src/
-│   │   ├── modules/
-│   │   │   ├── tracking/       ← MQTT consumer, WebSocket, HTTP API
-│   │   │   └── vehicle/        ← Vehicle CRUD
-│   │   ├── prisma/             ← Database service (Prisma v7)
-│   │   └── redis/              ← Redis cache service
-│   └── prisma/
-│       └── schema.prisma       ← DB schema (vehicles, tracking_points)
-│
-├── simulator/                  ← GPS Simulator
-│   └── src/simulator.ts        ← 3 vehicles, waypoint interpolation
-│
-└── frontend/                   ← Next.js 14 Dashboard
-    ├── app/
-    │   ├── page.tsx            ← Live Map
-    │   ├── history/page.tsx    ← History Playback
-    │   └── analytics/page.tsx  ← Speed Chart + Stop Detection
-    ├── components/
-    │   ├── FleetMap.tsx        ← Leaflet wrapper (dynamic import)
-    │   ├── FleetMapInner.tsx   ← Leaflet map + markers
-    │   ├── HistoryMapInner.tsx ← Trajectory polyline
-    │   └── Sidebar.tsx         ← Navigation
-    └── hooks/
-        └── useFleetSocket.ts   ← Socket.IO WebSocket hook
-```
+MIT License
 
 ---
 
-## 🧠 Key Technical Decisions
+## 👤 Author Teguh Badrusalam
 
-### Stop Detection Algorithm
-```
-IF speed < 5 km/h for >= 2 minutes → status = STOPPED
-ELSE → status = MOVING
-```
-Implemented as an in-memory FSM (Finite State Machine) per vehicle in `TrackingService`.
-
-### Redis Caching Strategy
-- Last position per vehicle stored as JSON with 24-hour TTL
-- Key pattern: `vehicle:{vehicleId}:last_position`
-- Enables O(1) reads for `/api/tracking/latest` — no DB query needed
-
-### Real-Time Architecture
-- No polling — pure event-driven via MQTT → WebSocket
-- Socket.IO handles reconnection automatically
+Fullstack Developer specializing in **NestJS**, **Next.js**, and **GIS/AV Systems**
 
 ---
 
-## 🏷️ CV Description
+<div align="center">
 
-> *"Built a real-time fleet tracking system using MQTT (Mosquitto) for IoT data ingestion from GPS simulators, NestJS for backend processing with stop-detection logic, Redis for high-performance last-position caching, PostgreSQL for historical data storage, and Next.js with Leaflet.js for live map visualization via WebSocket."*
+*Part of the Real-Time AV Sensor & Fleet Tracking System*
 
----
-
-## 🔧 Port Reference
-
-| Service | Port |
-|---------|------|
-| MQTT Broker | 1883 |
-| NestJS API + WebSocket | 3000 |
-| Next.js Frontend | 3001 |
-| Redis | 6379 |
-| PostgreSQL | 5432 |
+</div>
