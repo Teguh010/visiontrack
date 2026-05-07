@@ -18,6 +18,7 @@
 <p align="center">
   <a href="#-features">Features</a> •
   <a href="#-quick-start">Quick Start</a> •
+  <a href="#-nuscenes-dataset-setup-av-sensor">nuScenes Setup</a> •
   <a href="#-architecture">Architecture</a> •
   <a href="#-documentation">Docs</a> •
   <a href="#-contributing">Contributing</a>
@@ -173,6 +174,117 @@ npm start
 | AV Sensor View | http://localhost:3001/av |
 | Analytics | http://localhost:3001/analytics |
 | History Playback | http://localhost:3001/history |
+
+---
+
+## 📦 nuScenes Dataset Setup (AV Sensor)
+
+This section explains how to prepare the AV sensor dataset so the `/av` page runs with full features (camera, LiDAR, ego GPS, and annotations).
+
+### 1) Download the dataset from nuScenes
+
+1. Sign up / log in at the [nuScenes official website](https://www.nuscenes.org/).
+2. Download the **`v1.0-mini`** package (recommended for local development and demos).
+3. Extract the dataset to:
+
+```bash
+visiontrack/data/nuscenes/
+```
+
+Expected minimum structure:
+
+```text
+data/nuscenes/
+├── samples/
+├── sweeps/
+├── maps/
+└── v1.0-mini/
+    ├── sample.json
+    ├── sample_data.json
+    ├── sample_annotation.json
+    ├── scene.json
+    └── ...
+```
+
+### 2) Run the nuScenes replayer
+
+```bash
+cd replayer
+python3 nuscenes_replayer.py --list-scenes
+python3 nuscenes_replayer.py --scene 0 --speed 1.0 --loop
+```
+
+> The replayer default `dataroot` is `../data/nuscenes`, so make sure your dataset follows the folder structure above.
+
+### 3) Example payloads published to MQTT
+
+The replayer publishes data to these AV topics:
+
+- `vehicle/gps`
+- `vehicle/camera/CAM_*`
+- `vehicle/lidar`
+- `vehicle/annotations`
+- `vehicle/status`
+
+Compact payload example:
+
+```json
+{
+  "gps": {
+    "lat": 42.3368491,
+    "lon": -71.0578536,
+    "heading": 127.3,
+    "speed_kph": 22.4,
+    "x": 410.2,
+    "y": 1180.6,
+    "frame": 42
+  },
+  "lidar": {
+    "points": [[1.24, -0.33, 0.45, 0.73], [1.11, -0.41, 0.40, 0.69]],
+    "count": 300
+  },
+  "annotations": {
+    "count": 8,
+    "example": {
+      "category": "vehicle.car",
+      "x": 12.5,
+      "y": -3.2,
+      "z": 0.1,
+      "width": 1.9,
+      "length": 4.4,
+      "height": 1.6,
+      "yaw": 15.2,
+      "distance": 12.9
+    }
+  }
+}
+```
+
+### 4) How data is processed in this project
+
+End-to-end AV sensor data flow:
+
+1. **Replayer (Python)** reads nuScenes frames and publishes them to MQTT.
+2. **NestJS backend** subscribes to `vehicle/#`, then:
+   - validates and normalizes payloads
+   - transforms coordinates/objects to frontend-friendly shape
+   - stores latest state in Redis
+   - broadcasts real-time updates to WebSocket namespace `/av`
+3. **Next.js frontend (`/av`)** consumes the WebSocket stream and renders:
+   - 6-camera grid
+   - LiDAR point cloud (2D/3D views)
+   - 3D bounding boxes with category metadata
+   - ego GPS/heading with map overlays
+
+### 5) Why this is relevant for real AV integration
+
+This project architecture is **source-agnostic**: upstream data can come from the nuScenes replayer (offline) or a real vehicle stack (online), as long as topic/payload contracts are equivalent.
+
+For real AV integration, in most cases you only need to:
+
+- replace `nuscenes_replayer.py` with a ROS2/CAN/perception bridge publisher
+- keep publishing to the same MQTT topics
+- keep backend + frontend mostly unchanged
 
 ---
 
