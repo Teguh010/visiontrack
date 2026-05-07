@@ -2,7 +2,7 @@
 # Install with: pip install -r requirements.txt
 
 # nuScenes devkit - for reading nuScenes dataset
-nuscenes-devkit>=1.1.11
+nuscenes-devkit>=1.2.0
 
 # MQTT client for publishing sensor data
 paho-mqtt>=2.0.0
