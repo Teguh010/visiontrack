@@ -34,7 +34,7 @@ const VIEW_CONFIG: Record<ViewAngle, {
   top: {
     label: "Top (Bird's Eye)",
     icon: <div className="w-3 h-3 rounded-full border-2 border-current" />,
-    transform: (x, y, scale, cx, cy) => [cx - y * scale, cy - x * scale],
+    transform: (x, y, _z, scale, cx, cy) => [cx - y * scale, cy - x * scale],
     boxTransform: (ann, scale) => ({ w: ann.length * scale, h: ann.width * scale, rotation: -ann.yaw }),
     directions: { top: "FRONT", bottom: "REAR", left: "RIGHT", right: "LEFT" },
   },

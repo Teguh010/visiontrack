@@ -38,6 +38,7 @@ data/
 # production
 /build
 **/dist/
+backend/dist/
 **/build/
 
 # misc
