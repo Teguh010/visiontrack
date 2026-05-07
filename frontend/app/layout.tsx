@@ -6,7 +6,7 @@ import { Sidebar } from "@/components/Sidebar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "FleetTrack — Real-Time Fleet Tracking System",
+  title: "VisionTrack — Real-Time Fleet Tracking System",
   description:
     "Real-time fleet tracking dashboard with MQTT, WebSocket, and live map visualization.",
 };
