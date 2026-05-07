@@ -149,7 +149,7 @@ export default function HistoryPage() {
       {/* Map */}
       <div className="flex-1 rounded-xl overflow-hidden border border-gray-800 bg-gray-900 min-h-0">
         {points.length > 0 ? (
-          <HistoryMapInner points={points} vehicleId={selectedId} />
+          <HistoryMapInner points={points} />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-gray-600">
             <MapPin className="w-10 h-10 mb-3 opacity-30" />
