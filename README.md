@@ -59,9 +59,9 @@
 
 ## 🎬 AV Dashboard Demo
 
-Short demo recording of the `/av` dashboard:
+Short GIF preview of the `/av` dashboard:
 
-- [Watch AV dashboard short demo](docs/av-dashboard-short.mp4)
+![AV dashboard short demo](docs/av-dashboard-short.gif)
 
 ---
 
