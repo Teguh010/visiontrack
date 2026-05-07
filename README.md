@@ -5,7 +5,7 @@
 ### Real-Time Fleet Tracking & Autonomous Vehicle Sensor Platform
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![CI](https://github.com/Teguh010/visiontrack/actions/workflows/ci.yml/badge.svg)](https://github.com/Teguh010/visiontrack/actions/workflows/ci.yml)
+[![CI](https://github.com/Teguh010/visiontrack/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Teguh010/visiontrack/actions/workflows/ci.yml?query=branch%3Amain)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
@@ -278,7 +278,6 @@ visiontrack/
 ## 📖 Documentation
 
 - [Architecture Deep Dive](ARCHITECTURE.md) — Detailed system design
-- [Architecture (English)](ARCHITECTURE.en.md) — English translation
 - [Contributing Guide](CONTRIBUTING.md) — How to contribute
 - [Backend README](backend/README.md) — Backend specific docs
 - [Frontend README](frontend/README.md) — Frontend specific docs
