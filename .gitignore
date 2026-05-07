@@ -1,0 +1,13 @@
+# Root .gitignore
+node_modules/
+.env
+.env.local
+dist/
+
+# Docker volumes (tracked separately)
+# postgres_data, redis_data etc are docker-managed
+
+# OS
+.DS_Store
+Thumbs.db
+data/

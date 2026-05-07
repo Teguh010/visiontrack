@@ -1,0 +1,11 @@
+# nuScenes Replayer Dependencies
+# Install with: pip install -r requirements.txt
+
+# nuScenes devkit - for reading nuScenes dataset
+nuscenes-devkit>=1.1.11
+
+# MQTT client for publishing sensor data
+paho-mqtt>=2.0.0
+
+# Numerical computation for LiDAR point cloud
+numpy>=1.24.0

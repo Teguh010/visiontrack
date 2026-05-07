@@ -1,0 +1,44 @@
+services:
+  # ── MQTT Broker ────────────────────────────────────────────────
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: fleet_mosquitto
+    ports:
+      - "1883:1883"   # MQTT
+      - "9001:9001"   # WebSocket (for browser MQTT clients if needed)
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    restart: unless-stopped
+
+  # ── Redis (last position cache) ────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: fleet_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  # ── PostgreSQL (tracking history) ─────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: fleet_postgres
+    environment:
+      POSTGRES_USER: fleetuser
+      POSTGRES_PASSWORD: fleetpass
+      POSTGRES_DB: fleet_tracking
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  redis_data:
+  postgres_data:

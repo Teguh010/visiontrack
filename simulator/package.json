@@ -1,0 +1,32 @@
+{
+  "name": "realtime-tracking-simulator",
+  "version": "1.0.0",
+  "description": "GPS Fleet Simulator — publishes simulated vehicle locations to MQTT broker",
+  "author": "Teguh Badrusalam",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/teguhbadru/realtime-tracking-system.git",
+    "directory": "simulator"
+  },
+  "keywords": [
+    "gps-simulator",
+    "mqtt",
+    "iot",
+    "fleet-tracking"
+  ],
+  "main": "dist/simulator.js",
+  "scripts": {
+    "start": "ts-node src/simulator.ts",
+    "build": "tsc",
+    "start:prod": "node dist/simulator.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
