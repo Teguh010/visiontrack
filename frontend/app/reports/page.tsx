@@ -421,7 +421,7 @@ export default function ReportsPage() {
       {!loading && !error && !overview && !tripReport && !speedDist && (
         <div className="flex-1 flex flex-col items-center justify-center text-gray-600 py-20">
           <FileText className="w-12 h-12 mb-4 opacity-30" />
-          <p className="text-sm">Klik "Generate" untuk membuat laporan</p>
+          <p className="text-sm">Klik &quot;Generate&quot; untuk membuat laporan</p>
         </div>
       )}
     </div>

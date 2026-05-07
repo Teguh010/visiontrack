@@ -153,7 +153,7 @@ export default function HistoryPage() {
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-gray-600">
             <MapPin className="w-10 h-10 mb-3 opacity-30" />
-            <p className="text-sm">Select a vehicle and date range, then click "Load Trajectory"</p>
+            <p className="text-sm">Select a vehicle and date range, then click &quot;Load Trajectory&quot;</p>
           </div>
         )}
       </div>

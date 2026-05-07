@@ -36,6 +36,7 @@ export function BirdEyeView({ gps, width = 288, height = 200 }: BirdEyeViewProps
   useEffect(() => {
     if (gpsX === 0 && gpsY === 0) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTrail((prev) => {
       const last = prev[prev.length - 1];
       // Avoid duplicate points

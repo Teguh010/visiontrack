@@ -27,6 +27,7 @@ export function LocalTrajectoryView({ gps, width = 288, height = 200 }: LocalTra
   useEffect(() => {
     if (!gps) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTrail((prev) => {
       const newTrail = [...prev, { lat: gps.lat, lon: gps.lon, timestamp: Date.now() }];
       // Keep only last N points
@@ -53,6 +54,7 @@ export function LocalTrajectoryView({ gps, width = 288, height = 200 }: LocalTra
     const latPad = Math.max((maxLat - minLat) * 0.2, 0.0001);
     const lonPad = Math.max((maxLon - minLon) * 0.2, 0.0001);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBounds({
       minLat: minLat - latPad,
       maxLat: maxLat + latPad,

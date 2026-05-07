@@ -258,7 +258,7 @@ export default function AnalyticsPage() {
         <div className="flex-1 flex flex-col items-center justify-center text-gray-600 py-20">
           <BarChart2 className="w-12 h-12 mb-4 opacity-30" />
           <p className="text-sm">
-            Select a vehicle and date range, then click "Analyze"
+            Select a vehicle and date range, then click &quot;Analyze&quot;
           </p>
         </div>
       )}
