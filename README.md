@@ -39,8 +39,13 @@
 
 ### 🚙 Autonomous Vehicle Sensor Visualization
 - **6-camera grid view** — Front, back, and side cameras from nuScenes dataset
+- **2D camera overlays** — Per-camera projected object boxes with labels and distance
 - **LiDAR point cloud** — Real-time 3D point cloud visualization
 - **3D bounding boxes** — Object detection annotations overlay
+- **Object track history** — 3-5 second per-object trails in LiDAR top view
+- **TTC risk analysis** — Safe/Caution/Danger labels with global risk alert
+- **Semantic object panel** — Sortable table (nearest / most risky) with key attributes
+- **Data trust indicators** — Stream freshness and LiDAR-vs-annotation frame delta
 - **GPS/IMU data** — Ego vehicle position and heading
 - **Scene replay** — Frame-by-frame playback of AV sensor data
 
@@ -49,6 +54,14 @@
 - **Modular monorepo** — Cleanly separated backend, frontend, simulator, and replayer
 - **Type-safe** — Full TypeScript across all packages
 - **Production-ready** — Docker Compose, CI/CD, proper error handling
+
+---
+
+## 🎬 AV Dashboard Demo
+
+Short demo recording of the `/av` dashboard:
+
+- [Watch AV dashboard short demo](docs/av-dashboard-short.mp4)
 
 ---
 
@@ -272,8 +285,10 @@ End-to-end AV sensor data flow:
    - broadcasts real-time updates to WebSocket namespace `/av`
 3. **Next.js frontend (`/av`)** consumes the WebSocket stream and renders:
    - 6-camera grid
+   - projected 2D camera boxes + labels
    - LiDAR point cloud (2D/3D views)
-   - 3D bounding boxes with category metadata
+   - 3D bounding boxes with track history
+   - TTC-based risk scoring and semantic object panel
    - ego GPS/heading with map overlays
 
 ### 5) Why this is relevant for real AV integration
@@ -359,9 +374,9 @@ visiontrack/
 | Event | Direction | Description |
 |-------|-----------|-------------|
 | `av:gps` | Server → Client | Ego vehicle position |
-| `av:camera` | Server → Client | Camera frame (base64) |
+| `av:camera` | Server → Client | Camera frame (base64) + projected 2D boxes |
 | `av:lidar` | Server → Client | LiDAR point cloud |
-| `av:annotations` | Server → Client | 3D bounding boxes |
+| `av:annotations` | Server → Client | 3D boxes + track/kinematics metadata |
 
 ### MQTT Topics
 
