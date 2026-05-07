@@ -119,7 +119,16 @@ export function LidarView({ lidar, annotations, width = 300, height = 300 }: Lid
 
     // Draw 3D bounding boxes for detected objects
     if (showBoxes && annotations?.annotations) {
-      drawBoundingBoxes(ctx, annotations.annotations, centerX, centerY, scaleXY, scaleZ, viewMode, rotation, width, height);
+      drawBoundingBoxes(
+        ctx,
+        annotations.annotations,
+        centerX,
+        centerY,
+        scaleXY,
+        scaleZ,
+        viewMode,
+        rotation
+      );
     }
   }, [lidar, annotations, width, height, viewMode, rotation, showBoxes]);
 
