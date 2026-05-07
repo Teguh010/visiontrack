@@ -358,12 +358,31 @@ function SingleView({
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function LidarMultiView({ lidar, annotations, width = 400, height = 500 }: LidarMultiViewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(width);
   const [viewAngle, setViewAngle] = useState<ViewAngle>("top");
   const [layout, setLayout] = useState<LayoutMode>("single");
   const [showPoints, setShowPoints] = useState(true);
   const [showBoxes, setShowBoxes] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
   const [range, setRange] = useState(50);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const updateWidth = () => {
+      const nextWidth = Math.floor(el.clientWidth);
+      if (nextWidth > 0) setContainerWidth(nextWidth);
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
 
   // Scene analysis
   const sceneAnalysis = useMemo<SceneAnalysis>(() => {
@@ -387,11 +406,14 @@ export function LidarMultiView({ lidar, annotations, width = 400, height = 500 }
     setRange(ranges[(ranges.indexOf(range) + 1) % ranges.length]);
   };
 
-  const canvasWidth = layout === "quad" ? (width - 4) / 2 : width;
-  const canvasHeight = layout === "quad" ? (height - 120) / 2 : height - 80;
+  const baseWidth = Math.max(1, width);
+  const effectiveWidth = Math.max(280, containerWidth);
+  const effectiveHeight = Math.round((height / baseWidth) * effectiveWidth);
+  const canvasWidth = layout === "quad" ? (effectiveWidth - 4) / 2 : effectiveWidth;
+  const canvasHeight = layout === "quad" ? (effectiveHeight - 120) / 2 : effectiveHeight - 80;
 
   return (
-    <div className="flex flex-col bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
+    <div ref={containerRef} className="w-full flex flex-col bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 bg-gray-800/50 border-b border-gray-700">
         <div className="flex items-center gap-2">
@@ -470,7 +492,7 @@ export function LidarMultiView({ lidar, annotations, width = 400, height = 500 }
             lidar={lidar}
             annotations={annotations}
             viewAngle={viewAngle}
-            width={width}
+            width={effectiveWidth}
             height={canvasHeight}
             range={range}
             showPoints={showPoints}

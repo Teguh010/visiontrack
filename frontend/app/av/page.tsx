@@ -18,7 +18,7 @@ type MapMode = "trajectory" | "bev" | "world";
 
 export default function AvDashboardPage() {
   const { connected, gps, cameras, lidar, status, annotations } = useAvSensorSocket();
-  const [mapMode, setMapMode] = useState<MapMode>("bev");
+  const [mapMode, setMapMode] = useState<MapMode>("world");
 
   return (
     <div className="flex flex-col h-screen p-4 gap-4 overflow-hidden">
@@ -116,10 +116,17 @@ export default function AvDashboardPage() {
         </div>
 
         {/* Right: Sidebar with Status, Map, LiDAR — scrollable */}
-        <div className="w-80 shrink-0 overflow-y-auto">
+        <div className="w-100 shrink-0 overflow-y-auto">
           <div className="flex flex-col gap-4 pb-4">
-            {/* Status Panel */}
-            <StatusPanel gps={gps} status={status} />
+               {/* LiDAR Multi-View */}
+               <div>
+              <LidarMultiView 
+                lidar={lidar} 
+                annotations={annotations} 
+                width={340} 
+                height={420} 
+              />
+            </div>
 
             {/* Position View with Toggle */}
             <div>
@@ -187,15 +194,8 @@ export default function AvDashboardPage() {
               )}
             </div>
 
-            {/* LiDAR Multi-View */}
-            <div>
-              <LidarMultiView 
-                lidar={lidar} 
-                annotations={annotations} 
-                width={340} 
-                height={420} 
-              />
-            </div>
+             {/* Status Panel */}
+             <StatusPanel gps={gps} status={status} />
           </div>
         </div>
       </div>

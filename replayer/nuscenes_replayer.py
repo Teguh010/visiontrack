@@ -1,15 +1,17 @@
 """
 nuscenes_replayer.py
 --------------------
-Baca data nuScenes dan publish ke MQTT broker.
-Letakkan file ini di: realtime-tracking-system/simulator/
+Read nuScenes data and publish to MQTT broker.
+Place this file in: realtime-tracking-system/simulator/
 
 Usage:
   python3 nuscenes_replayer.py
   python3 nuscenes_replayer.py --scene 0 --speed 1.0 --loop
+  python3 nuscenes_replayer.py --scene-start 0 --scene-count 6 --speed 1.0
+  python3 nuscenes_replayer.py --scene-start 0 --scene-count 6 --speed 1.0 --once
   python3 nuscenes_replayer.py --list-scenes
 
-MQTT Topics yang dipublish:
+Published MQTT topics:
   vehicle/gps       → {lat, lon, heading, speed, altitude, timestamp}
   vehicle/camera/FRONT         → base64 PNG
   vehicle/camera/FRONT_LEFT    → base64 PNG
@@ -39,7 +41,7 @@ from nuscenes.nuscenes import NuScenes
 DATAROOT      = os.path.join(os.path.dirname(__file__), '..', 'data', 'nuscenes')
 MQTT_BROKER   = 'localhost'
 MQTT_PORT     = 1883
-FRAME_INTERVAL = 0.5   # detik antar frame (nuScenes ~2Hz)
+FRAME_INTERVAL = 0.5   # seconds between frames (nuScenes ~2Hz)
 
 CAMERA_NAMES = [
     'CAM_FRONT',
@@ -68,13 +70,13 @@ CATEGORY_COLORS = {
 
 
 # ---------------------------------------------------------------------------
-# Helper: konversi nuScenes translation ke lat/lon
-# nuScenes pakai koordinat meter lokal, kita konversi ke lat/lon approximate
+# Helper: convert nuScenes translation to lat/lon
+# nuScenes uses local meter coordinates; convert to approximate lat/lon
 # Boston reference: 42.336849169438615, -71.05785369873047
 # Singapore reference: 1.2882100718435421, 103.83744771948242
 # ---------------------------------------------------------------------------
 def meters_to_latlon(x, y, ref_lat=42.336849, ref_lon=-71.05785):
-    """Konversi koordinat meter lokal ke lat/lon approximate."""
+    """Convert local meter coordinates to approximate lat/lon."""
     lat = ref_lat + (y / 111320.0)
     lon = ref_lon + (x / (111320.0 * math.cos(math.radians(ref_lat))))
     return lat, lon
@@ -82,11 +84,11 @@ def meters_to_latlon(x, y, ref_lat=42.336849, ref_lon=-71.05785):
 
 def get_heading_from_rotation(rotation):
     """
-    Konversi quaternion rotation ke heading derajat (0-360).
+    Convert quaternion rotation to heading degrees (0-360).
     rotation: [w, x, y, z]
     """
     w, x, y, z = rotation
-    # Yaw dari quaternion
+    # Yaw from quaternion
     siny_cosp = 2 * (w * z + x * y)
     cosy_cosp = 1 - 2 * (y * y + z * z)
     yaw = math.atan2(siny_cosp, cosy_cosp)
@@ -95,7 +97,7 @@ def get_heading_from_rotation(rotation):
 
 
 def estimate_speed(pose_curr, pose_prev, dt=0.5):
-    """Estimasi kecepatan dari dua ego_pose berturutan."""
+    """Estimate speed from two consecutive ego poses."""
     if pose_prev is None:
         return 0.0
     dx = pose_curr['translation'][0] - pose_prev['translation'][0]
@@ -107,7 +109,7 @@ def estimate_speed(pose_curr, pose_prev, dt=0.5):
 
 
 def encode_image(image_path):
-    """Load gambar dan encode ke base64."""
+    """Load an image and encode it to base64."""
     try:
         with open(image_path, 'rb') as f:
             return base64.b64encode(f.read()).decode('utf-8')
@@ -117,14 +119,14 @@ def encode_image(image_path):
 
 def load_lidar_points(lidar_path, max_points=500):
     """
-    Load LiDAR point cloud dari file .pcd.bin nuScenes.
+    Load LiDAR point cloud from a nuScenes .pcd.bin file.
     Format: float32 array [x, y, z, intensity, ring_index]
     Return: list of [x, y, z, intensity] — sampled max_points
     """
     try:
         points = np.fromfile(lidar_path, dtype=np.float32)
         points = points.reshape(-1, 5)  # nuScenes format: x,y,z,intensity,ring
-        # Sample untuk tidak overload MQTT
+    # Sample points to avoid overloading MQTT
         if len(points) > max_points:
             idx = np.random.choice(len(points), max_points, replace=False)
             points = points[idx]
@@ -138,7 +140,7 @@ def load_lidar_points(lidar_path, max_points=500):
             ])
         return result
     except Exception as e:
-        print(f"[replayer] Warning: gagal load lidar: {e}")
+        print(f"[replayer] Warning: failed to load lidar: {e}")
         return []
 
 
@@ -147,13 +149,13 @@ def load_lidar_points(lidar_path, max_points=500):
 # ---------------------------------------------------------------------------
 def on_connect(client, userdata, flags, rc, properties=None):
     if rc == 0:
-        print(f"[replayer] ✅ Terhubung ke MQTT broker {MQTT_BROKER}:{MQTT_PORT}")
+        print(f"[replayer] ✅ Connected to MQTT broker {MQTT_BROKER}:{MQTT_PORT}")
     else:
-        print(f"[replayer] ❌ Gagal connect MQTT, rc={rc}")
+        print(f"[replayer] ❌ Failed to connect MQTT, rc={rc}")
 
 
 def on_disconnect(client, userdata, rc, properties=None, reasonCode=None):
-    print(f"[replayer] Disconnected dari MQTT broker")
+    print(f"[replayer] Disconnected from MQTT broker")
 
 
 def get_simplified_category(category_name):
@@ -312,7 +314,7 @@ class NuScenesReplayer:
         return annotations
 
     def list_scenes(self):
-        """Print semua scene yang tersedia."""
+        """Print all available scenes."""
         print("\nAvailable scenes:")
         print("-" * 60)
         for i, scene in enumerate(self.nusc.scene):
@@ -320,7 +322,7 @@ class NuScenesReplayer:
         print()
 
     def get_samples_in_scene(self, scene_idx):
-        """Ambil semua sample dalam scene secara berurutan."""
+        """Get all samples in a scene in order."""
         scene = self.nusc.scene[scene_idx]
         samples = []
         sample_token = scene['first_sample_token']
@@ -331,12 +333,12 @@ class NuScenesReplayer:
         return samples
 
     def replay_scene(self, scene_idx):
-        """Replay satu scene — publish semua data ke MQTT."""
+        """Replay one scene and publish all data to MQTT."""
         scene = self.nusc.scene[scene_idx]
         samples = self.get_samples_in_scene(scene_idx)
         total = len(samples)
 
-        # Deteksi lokasi untuk konversi koordinat
+        # Detect location for coordinate conversion
         log = self.nusc.get('log', scene['log_token'])
         location = log['location']
         if 'singapore' in location.lower():
@@ -349,7 +351,7 @@ class NuScenesReplayer:
         print(f"[replayer] Total frames: {total}")
         print(f"[replayer] Speed: {self.speed}x")
         print(f"[replayer] Topics: {TOPIC_GPS}, vehicle/camera/*, {TOPIC_LIDAR}, {TOPIC_ANNOTATIONS}")
-        print("[replayer] Tekan Ctrl+C untuk berhenti\n")
+        print("[replayer] Press Ctrl+C to stop\n")
 
         interval = FRAME_INTERVAL / self.speed
         prev_pose = None
@@ -447,7 +449,7 @@ class NuScenesReplayer:
             sleep_t = max(0, interval - elapsed)
             time.sleep(sleep_t)
 
-        # Selesai
+        # Finished
         self.client.publish(TOPIC_STATUS, json.dumps({
             "scene":  scene['name'],
             "frame":  total,
@@ -455,22 +457,52 @@ class NuScenesReplayer:
             "pct":    100.0,
             "status": "finished",
         }), qos=1)
-        print(f"\n[replayer] Scene {scene['name']} selesai ({total} frames)")
+        print(f"\n[replayer] Scene {scene['name']} finished ({total} frames)")
 
-    def run(self, scene_idx):
-        """Connect MQTT dan mulai replay."""
+    def replay_scene_range(self, scene_start, scene_count):
+        """Replay multiple scenes in sequence."""
+        total_scenes = len(self.nusc.scene)
+        if scene_start < 0 or scene_start >= total_scenes:
+            raise ValueError(
+                f"scene_start {scene_start} out of range (0-{total_scenes - 1})"
+            )
+        if scene_count < 1:
+            raise ValueError("scene_count must be >= 1")
+
+        last_scene = min(scene_start + scene_count, total_scenes)
+        selected = list(range(scene_start, last_scene))
+
+        print(
+            f"[replayer] Replay scenes: {selected[0]}..{selected[-1]} "
+            f"({len(selected)} scene)"
+        )
+        for idx in selected:
+            self.replay_scene(idx)
+
+    def run(self, scene_idx, scene_start=None, scene_count=1):
+        """Connect to MQTT and start replay."""
         self.client.connect(self.broker, self.port, keepalive=60)
         self.client.loop_start()
         time.sleep(1)
 
         try:
             while True:
-                self.replay_scene(scene_idx)
+                if scene_start is not None:
+                    self.replay_scene_range(scene_start, scene_count)
+                else:
+                    self.replay_scene(scene_idx)
+
                 if not self.loop:
                     break
-                print(f"[replayer] --loop aktif, mengulang dari awal...\n")
+                if scene_start is not None:
+                    print(
+                        f"[replayer] --loop enabled, replaying scene range "
+                        f"{scene_start}..{scene_start + scene_count - 1}...\n"
+                    )
+                else:
+                    print(f"[replayer] --loop enabled, restarting from beginning...\n")
         except KeyboardInterrupt:
-            print("\n[replayer] Dihentikan oleh user.")
+            print("\n[replayer] Stopped by user.")
         finally:
             self.client.loop_stop()
             self.client.disconnect()
@@ -481,15 +513,18 @@ class NuScenesReplayer:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="nuScenes → MQTT replayer")
-    parser.add_argument("--dataroot",   default=DATAROOT,      help="Path ke folder nuScenes")
+    parser.add_argument("--dataroot",   default=DATAROOT,      help="Path to nuScenes folder")
     parser.add_argument("--broker",     default=MQTT_BROKER,   help="MQTT broker host")
     parser.add_argument("--port",       default=MQTT_PORT,     type=int)
     parser.add_argument("--scene",      default=0,             type=int, help="Index scene (0-9)")
-    parser.add_argument("--speed",      default=1.0,           type=float, help="Kecepatan replay (1.0=normal, 2.0=2x)")
-    parser.add_argument("--loop",       action="store_true",   help="Loop terus menerus")
+    parser.add_argument("--scene-start", default=None,         type=int, help="Start scene index for range replay")
+    parser.add_argument("--scene-count", default=1,            type=int, help="Number of consecutive scenes to replay")
+    parser.add_argument("--speed",      default=1.0,           type=float, help="Replay speed (1.0=normal, 2.0=2x)")
+    parser.add_argument("--loop",       action="store_true",   help="Loop continuously")
+    parser.add_argument("--once",       action="store_true",   help="Run only once (override range auto-loop)")
     parser.add_argument("--no-camera",  action="store_true",   dest="no_camera", help="Skip camera frames")
     parser.add_argument("--no-lidar",   action="store_true",   dest="no_lidar",  help="Skip lidar data")
-    parser.add_argument("--list-scenes",action="store_true",   dest="list_scenes", help="List semua scene")
+    parser.add_argument("--list-scenes",action="store_true",   dest="list_scenes", help="List all scenes")
     args = parser.parse_args()
 
     replayer = NuScenesReplayer(
@@ -505,4 +540,18 @@ if __name__ == "__main__":
     if args.list_scenes:
         replayer.list_scenes()
     else:
-        replayer.run(args.scene)
+        # UX default:
+        # - Range mode (scene-start/scene-count): auto-loop by default
+        # - Single scene mode: loop only when --loop is provided
+        should_loop = False
+        if args.scene_start is not None:
+            should_loop = not args.once
+        if args.loop:
+            should_loop = True
+
+        replayer.loop = should_loop
+        replayer.run(
+            scene_idx=args.scene,
+            scene_start=args.scene_start,
+            scene_count=args.scene_count,
+        )
