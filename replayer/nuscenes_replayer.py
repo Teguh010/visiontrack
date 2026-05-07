@@ -237,10 +237,11 @@ class NuScenesReplayer:
         print(f"[replayer] Built lookups: {len(self.category_lookup)} categories, "
               f"{len(self.attribute_lookup)} attributes, {len(self.instance_lookup)} instances")
 
-    def get_annotations_for_sample(self, sample_token, ego_pose):
-        """Get all annotations for a sample, transformed to ego-centric coordinates."""
+    def get_annotations_for_sample(self, sample_token, ego_pose, prev_tracks, dt):
+        """Get annotations transformed to ego frame with track kinematics."""
         sample = self.nusc.get('sample', sample_token)
         annotations = []
+        current_tracks = {}
         
         ego_x, ego_y, ego_z = ego_pose['translation']
         ego_yaw = get_heading_from_rotation(ego_pose['rotation'])
@@ -249,8 +250,8 @@ class NuScenesReplayer:
         for ann_token in sample['anns']:
             ann = self.nusc.get('sample_annotation', ann_token)
             
-            # Get category
             instance_token = ann['instance_token']
+            # Get category
             category_token = self.instance_lookup.get(instance_token, '')
             category_name = self.category_lookup.get(category_token, 'unknown')
             simplified_cat = get_simplified_category(category_name)
@@ -292,8 +293,25 @@ class NuScenesReplayer:
             # Get color for category
             color = CATEGORY_COLORS.get(simplified_cat, '#64748b')
             
+            prev = prev_tracks.get(instance_token)
+            vx = 0.0
+            vy = 0.0
+            if prev is not None and dt > 0:
+                vx = (local_x - prev['x']) / dt
+                vy = (local_y - prev['y']) / dt
+            speed_mps = math.sqrt(vx * vx + vy * vy)
+            radial_speed_mps = 0.0
+            if distance > 0:
+                radial_speed_mps = (local_x * vx + local_y * vy) / distance
+
+            current_tracks[instance_token] = {
+                'x': local_x,
+                'y': local_y,
+            }
+
             annotations.append({
                 'id': ann_token[:8],  # Short ID
+                'track_id': instance_token,
                 'category': simplified_cat,
                 'category_full': category_name,
                 'attributes': attributes,
@@ -307,11 +325,15 @@ class NuScenesReplayer:
                 'distance': round(distance, 1),
                 'color': color,
                 'num_lidar_pts': ann['num_lidar_pts'],
+                'vx': round(vx, 3),
+                'vy': round(vy, 3),
+                'speed_mps': round(speed_mps, 3),
+                'relative_speed_mps': round(radial_speed_mps, 3),
             })
         
         # Sort by distance
         annotations.sort(key=lambda a: a['distance'])
-        return annotations
+        return annotations, current_tracks
 
     def list_scenes(self):
         """Print all available scenes."""
@@ -355,6 +377,7 @@ class NuScenesReplayer:
 
         interval = FRAME_INTERVAL / self.speed
         prev_pose = None
+        prev_tracks = {}
 
         for frame_idx, sample in enumerate(samples):
             t_start = time.time()
@@ -415,7 +438,13 @@ class NuScenesReplayer:
                     self.client.publish(TOPIC_LIDAR, lidar_payload, qos=0)
 
             # ---- Annotations (3D Bounding Boxes) ----
-            annotations = self.get_annotations_for_sample(sample['token'], ego_pose)
+            annotations, current_tracks = self.get_annotations_for_sample(
+                sample['token'],
+                ego_pose,
+                prev_tracks,
+                interval,
+            )
+            prev_tracks = current_tracks
             if annotations:
                 ann_payload = json.dumps({
                     "annotations": annotations,

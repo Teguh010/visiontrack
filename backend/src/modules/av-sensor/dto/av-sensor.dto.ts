@@ -136,6 +136,7 @@ export type ObjectAttribute =
 
 export interface AvAnnotation {
   id: string;
+  trackId: string;
   category: ObjectCategory;
   categoryFull: string;
   attributes: ObjectAttribute[];
@@ -155,11 +156,18 @@ export interface AvAnnotation {
   color: string;
   // Number of LiDAR points in this object
   numLidarPts: number;
+  // Velocity in ego frame (m/s)
+  vx: number;
+  vy: number;
+  speedMps: number;
+  // Radial speed relative to ego (m/s). Negative means closing in.
+  relativeSpeedMps: number;
 }
 
 export interface AvAnnotationsPayload {
   annotations: {
     id: string;
+    track_id?: string;
     category: string;
     category_full: string;
     attributes: string[];
@@ -173,6 +181,10 @@ export interface AvAnnotationsPayload {
     distance: number;
     color: string;
     num_lidar_pts: number;
+    vx?: number;
+    vy?: number;
+    speed_mps?: number;
+    relative_speed_mps?: number;
   }[];
   timestamp: number;
   frame: number;

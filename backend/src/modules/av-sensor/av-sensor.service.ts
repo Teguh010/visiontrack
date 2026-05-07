@@ -153,6 +153,7 @@ export class AvSensorService {
   async processAnnotations(payload: AvAnnotationsPayload): Promise<void> {
     const annotations: AvAnnotation[] = payload.annotations.map((ann) => ({
       id: ann.id,
+      trackId: ann.track_id ?? ann.id,
       category: ann.category as AvAnnotation['category'],
       categoryFull: ann.category_full,
       attributes: ann.attributes as AvAnnotation['attributes'],
@@ -166,6 +167,10 @@ export class AvSensorService {
       distance: ann.distance,
       color: ann.color,
       numLidarPts: ann.num_lidar_pts,
+      vx: ann.vx ?? 0,
+      vy: ann.vy ?? 0,
+      speedMps: ann.speed_mps ?? 0,
+      relativeSpeedMps: ann.relative_speed_mps ?? 0,
     }));
 
     const data: AvAnnotationsData = {
