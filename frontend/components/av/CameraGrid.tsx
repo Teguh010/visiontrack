@@ -5,7 +5,6 @@ import { Camera, CameraOff } from "lucide-react";
 
 interface CameraViewProps {
   camera: AvCameraData | undefined;
-  channel: CameraChannel;
   label: string;
 }
 
@@ -21,6 +20,7 @@ function CameraView({ camera, label }: CameraViewProps) {
       {camera ? (
         <>
           {/* Camera image */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`data:image/jpeg;base64,${camera.image}`}
             alt={label}
@@ -59,7 +59,6 @@ export function CameraGrid({ cameras }: CameraGridProps) {
         {frontCameras.map(({ channel, label }) => (
           <CameraView
             key={channel}
-            channel={channel}
             label={label}
             camera={cameras.get(channel)}
           />
@@ -71,7 +70,6 @@ export function CameraGrid({ cameras }: CameraGridProps) {
         {backCameras.map(({ channel, label }) => (
           <CameraView
             key={channel}
-            channel={channel}
             label={label}
             camera={cameras.get(channel)}
           />

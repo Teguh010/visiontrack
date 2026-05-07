@@ -220,7 +220,7 @@ function SingleView({
     if (showPoints && lidar?.points.length) {
       // Filter points based on view
       const filteredPoints = lidar.points.filter((p: LidarPoint) => {
-        const [x, y, z] = p;
+        const [x, y] = p;
         const dist = Math.sqrt(x * x + y * y);
         if (dist > range) return false;
         

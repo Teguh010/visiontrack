@@ -78,7 +78,6 @@ export default function ReportsPage() {
 
     // Auto-load fleet overview on mount
     loadOverview();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadOverview() {
