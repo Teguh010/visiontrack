@@ -326,9 +326,7 @@ function drawBoundingBoxes(
   scaleXY: number,
   scaleZ: number,
   mode: ViewMode,
-  rotation: number,
-  width: number,
-  height: number
+  rotation: number
 ) {
   annotations.forEach((ann) => {
     const { x, y, z, width: w, length: l, height: h, yaw, color, category, distance } = ann;

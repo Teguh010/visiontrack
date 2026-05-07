@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { AvLidarData, AvAnnotationsData, AvAnnotation, LidarPoint } from "@/types/av-sensor";
 import { 
-  Radar, Eye, EyeOff, Car, User, Truck, 
-  AlertTriangle, Navigation, Layers 
+  Radar, Eye, EyeOff, Car,
+  AlertTriangle, Layers 
 } from "lucide-react";
 
 interface LidarSceneViewProps {

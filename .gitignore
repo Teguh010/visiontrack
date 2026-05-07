@@ -1,6 +1,9 @@
-# Root .gitignore
+# Root .gitignore (monorepo)
 node_modules/
 dist/
+coverage/
+build/
+out/
 
 # Docker volumes (tracked separately)
 # postgres_data, redis_data etc are docker-managed
@@ -15,6 +18,7 @@ data/
 
 # dependencies
 /node_modules
+**/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -27,11 +31,14 @@ data/
 /coverage
 
 # next.js
-/.next/
+/frontend/.next/
+**/.next/
 /out/
 
 # production
 /build
+**/dist/
+**/build/
 
 # misc
 .DS_Store
@@ -42,6 +49,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
 # env files (can opt-in for committing if needed)
 .env*

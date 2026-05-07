@@ -7,14 +7,12 @@
 import { useState } from "react";
 import { useAvSensorSocket } from "@/hooks/useAvSensorSocket";
 import { CameraGrid } from "@/components/av/CameraGrid";
-import { LidarView } from "@/components/av/LidarView";
 import { LidarMultiView } from "@/components/av/LidarMultiView";
 import { StatusPanel } from "@/components/av/StatusPanel";
 import { AvMiniMap } from "@/components/av/AvMiniMap";
 import { LocalTrajectoryView } from "@/components/av/LocalTrajectoryView";
-import { NuScenesMapView } from "@/components/av/NuScenesMapView";
 import { BirdEyeView } from "@/components/av/BirdEyeView";
-import { Wifi, WifiOff, Car, Camera, Radar, MapPin, Navigation, Map, Layers, Eye } from "lucide-react";
+import { Wifi, WifiOff, Car, Camera, Radar, MapPin, Navigation, Map, Eye } from "lucide-react";
 
 type MapMode = "trajectory" | "bev" | "world";
 

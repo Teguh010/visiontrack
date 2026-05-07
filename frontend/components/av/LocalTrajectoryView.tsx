@@ -22,21 +22,23 @@ export function LocalTrajectoryView({ gps, width = 288, height = 200 }: LocalTra
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [trail, setTrail] = useState<TrailPoint[]>([]);
   const [bounds, setBounds] = useState({ minLat: 0, maxLat: 0, minLon: 0, maxLon: 0 });
+  const lat = gps?.lat;
+  const lon = gps?.lon;
 
   // Update trail when GPS changes
   useEffect(() => {
-    if (!gps) return;
+    if (lat == null || lon == null) return;
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTrail((prev) => {
-      const newTrail = [...prev, { lat: gps.lat, lon: gps.lon, timestamp: Date.now() }];
+      const newTrail = [...prev, { lat, lon, timestamp: Date.now() }];
       // Keep only last N points
       if (newTrail.length > MAX_TRAIL_POINTS) {
         newTrail.shift();
       }
       return newTrail;
     });
-  }, [gps?.lat, gps?.lon]);
+  }, [lat, lon]);
 
   // Calculate bounds from trail
   useEffect(() => {

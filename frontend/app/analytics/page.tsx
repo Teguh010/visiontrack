@@ -13,7 +13,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-  Legend,
 } from "recharts";
 import { Vehicle, TrackingPoint } from "@/types/tracking";
 import { format } from "date-fns";

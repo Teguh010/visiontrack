@@ -58,10 +58,9 @@ function getAvCarIcon(heading: number): L.DivIcon {
 
 interface MapPannerProps {
   position: [number, number] | null;
-  heading: number;
 }
 
-function MapPanner({ position, heading }: MapPannerProps) {
+function MapPanner({ position }: MapPannerProps) {
   const map = useMap();
 
   useEffect(() => {

@@ -9,7 +9,7 @@ interface CameraViewProps {
   label: string;
 }
 
-function CameraView({ camera, channel, label }: CameraViewProps) {
+function CameraView({ camera, label }: CameraViewProps) {
   return (
     <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-[16/9] border border-gray-700">
       {/* Label */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -49,10 +49,9 @@ function BoundsUpdater({ points }: { points: TrackingPoint[] }) {
 
 interface Props {
   points: TrackingPoint[];
-  vehicleId: string;
 }
 
-export default function HistoryMapInner({ points, vehicleId }: Props) {
+export default function HistoryMapInner({ points }: Props) {
   if (points.length === 0) return null;
 
   const latlngs: [number, number][] = points.map((p) => [Number(p.lat), Number(p.lon)]);

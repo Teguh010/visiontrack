@@ -15,7 +15,7 @@ import {
 import { Vehicle } from "@/types/tracking";
 import {
   FileText, Truck, TrendingUp, Clock, MapPin,
-  Loader2, Download, RefreshCw, Activity,
+  Loader2, RefreshCw, Activity,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 

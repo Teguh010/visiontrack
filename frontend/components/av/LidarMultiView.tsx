@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { AvLidarData, AvAnnotationsData, AvAnnotation, LidarPoint } from "@/types/av-sensor";
 import { 
   Radar, Eye, EyeOff, Car, Layers, 
-  AlertTriangle, ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
-  Maximize2, Grid3X3
+  AlertTriangle, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Grid3X3
 } from "lucide-react";
 
 type ViewAngle = "top" | "front" | "rear" | "left" | "right";
@@ -35,7 +34,7 @@ const VIEW_CONFIG: Record<ViewAngle, {
   top: {
     label: "Top (Bird's Eye)",
     icon: <div className="w-3 h-3 rounded-full border-2 border-current" />,
-    transform: (x, y, z, scale, cx, cy) => [cx - y * scale, cy - x * scale],
+    transform: (x, y, scale, cx, cy) => [cx - y * scale, cy - x * scale],
     boxTransform: (ann, scale) => ({ w: ann.length * scale, h: ann.width * scale, rotation: -ann.yaw }),
     directions: { top: "FRONT", bottom: "REAR", left: "RIGHT", right: "LEFT" },
   },
