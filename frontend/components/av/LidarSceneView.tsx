@@ -14,6 +14,12 @@ interface LidarSceneViewProps {
   height?: number;
 }
 
+interface SceneAnalysis {
+  groups: Record<string, AvAnnotation[]>;
+  closest: AvAnnotation | null;
+  total: number;
+}
+
 // Height-based color zones for environment understanding
 const HEIGHT_ZONES = [
   { max: -1.5, color: "#1e3a5f", label: "Below Ground" },      // Deep blue - pits/curbs
@@ -64,7 +70,7 @@ export function LidarSceneView({ lidar, annotations, width = 400, height = 400 }
   const [range, setRange] = useState(50); // View range in meters
 
   // Analyze scene - group objects by category and find closest
-  const sceneAnalysis = useMemo(() => {
+  const sceneAnalysis = useMemo<SceneAnalysis>(() => {
     if (!annotations?.annotations) return { groups: {}, closest: null, total: 0 };
     
     const groups: Record<string, AvAnnotation[]> = {};

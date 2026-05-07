@@ -1,5 +1,5 @@
-import { Injectable } from "@nestjs/common";
-import { PrismaService } from "../../prisma/prisma.service";
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class VehicleService {
@@ -8,7 +8,7 @@ export class VehicleService {
   /** Get all registered vehicles */
   async findAll() {
     return this.prisma.vehicle.findMany({
-      orderBy: { id: "asc" },
+      orderBy: { id: 'asc' },
     });
   }
 

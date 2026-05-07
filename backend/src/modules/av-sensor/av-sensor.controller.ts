@@ -4,11 +4,11 @@
  * REST API endpoints for autonomous vehicle sensor data
  */
 
-import { Controller, Get } from "@nestjs/common";
-import { AvSensorService } from "./av-sensor.service";
-import { AvVehicleState } from "./dto/av-sensor.dto";
+import { Controller, Get } from '@nestjs/common';
+import { AvSensorService } from './av-sensor.service';
+import { AvVehicleState } from './dto/av-sensor.dto';
 
-@Controller("av")
+@Controller('av')
 export class AvSensorController {
   constructor(private readonly avSensorService: AvSensorService) {}
 
@@ -17,7 +17,7 @@ export class AvSensorController {
    * Returns the current AV vehicle state (GPS, cameras, lidar, status)
    * Useful for initial state when client connects
    */
-  @Get("state")
+  @Get('state')
   async getCurrentState(): Promise<AvVehicleState> {
     return this.avSensorService.getCurrentState();
   }
@@ -26,10 +26,10 @@ export class AvSensorController {
    * GET /av/health
    * Health check for AV sensor module
    */
-  @Get("health")
+  @Get('health')
   getHealth(): { status: string; timestamp: string } {
     return {
-      status: "ok",
+      status: 'ok',
       timestamp: new Date().toISOString(),
     };
   }

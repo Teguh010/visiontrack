@@ -18,6 +18,12 @@ interface LidarMultiViewProps {
   height?: number;
 }
 
+interface SceneAnalysis {
+  groups: Record<string, AvAnnotation[]>;
+  closest: AvAnnotation | null;
+  total: number;
+}
+
 // View configurations
 const VIEW_CONFIG: Record<ViewAngle, { 
   label: string; 
@@ -361,7 +367,7 @@ export function LidarMultiView({ lidar, annotations, width = 400, height = 500 }
   const [range, setRange] = useState(50);
 
   // Scene analysis
-  const sceneAnalysis = useMemo(() => {
+  const sceneAnalysis = useMemo<SceneAnalysis>(() => {
     if (!annotations?.annotations) return { groups: {}, closest: null, total: 0 };
     
     const groups: Record<string, AvAnnotation[]> = {};

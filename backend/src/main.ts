@@ -1,6 +1,6 @@
-import { NestFactory } from "@nestjs/core";
-import { AppModule } from "./app.module";
-import { ValidationPipe } from "@nestjs/common";
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,13 +10,13 @@ async function bootstrap() {
 
   // CORS for Next.js frontend
   app.enableCors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3001",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   });
 
   // Global API prefix
-  app.setGlobalPrefix("api");
+  app.setGlobalPrefix('api');
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
@@ -24,4 +24,4 @@ async function bootstrap() {
   console.log(`📡 WebSocket gateway: ws://localhost:${port}`);
 }
 
-bootstrap();
+void bootstrap();

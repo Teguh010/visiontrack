@@ -1,11 +1,11 @@
 export interface MqttPayload {
   vehicleId?: string;
-  vehicleType?: string;   // CITY | HIGHWAY | DELIVERY | PATROL
+  vehicleType?: string; // CITY | HIGHWAY | DELIVERY | PATROL
   lat: number;
   lon: number;
   speed: number;
   heading?: number;
-  driveState?: string;    // DRIVING | IDLE | STOPPED
+  driveState?: string; // DRIVING | IDLE | STOPPED
   timestamp?: number;
 }
 

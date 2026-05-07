@@ -22,27 +22,27 @@ import {
   OnGatewayInit,
   SubscribeMessage,
   ConnectedSocket,
-} from "@nestjs/websockets";
-import { Logger } from "@nestjs/common";
-import { Server, Socket } from "socket.io";
+} from '@nestjs/websockets';
+import { Logger } from '@nestjs/common';
+import { Server, Socket } from 'socket.io';
 import {
   AvGpsData,
   AvCameraData,
   AvLidarData,
   AvStatusData,
   AvAnnotationsData,
-} from "./dto/av-sensor.dto";
+} from './dto/av-sensor.dto';
 
-const AV_ROOM = "av-sensor-stream";
+const AV_ROOM = 'av-sensor-stream';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3001",
-    methods: ["GET", "POST"],
+    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    methods: ['GET', 'POST'],
     credentials: true,
   },
-  transports: ["websocket", "polling"],
-  namespace: "/av",
+  transports: ['websocket', 'polling'],
+  namespace: '/av',
 })
 export class AvSensorGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -54,7 +54,9 @@ export class AvSensorGateway
   private subscriberCount = 0;
 
   afterInit() {
-    this.logger.log("🚗 AV Sensor WebSocket Gateway initialized (namespace: /av)");
+    this.logger.log(
+      '🚗 AV Sensor WebSocket Gateway initialized (namespace: /av)',
+    );
   }
 
   handleConnection(client: Socket) {
@@ -65,7 +67,9 @@ export class AvSensorGateway
     // Check if client was in the AV room
     if (client.rooms.has(AV_ROOM)) {
       this.subscriberCount--;
-      this.logger.log(`📡 AV subscriber disconnected: ${client.id} (total: ${this.subscriberCount})`);
+      this.logger.log(
+        `📡 AV subscriber disconnected: ${client.id} (total: ${this.subscriberCount})`,
+      );
     }
   }
 
@@ -73,23 +77,27 @@ export class AvSensorGateway
    * Client subscribes to AV sensor stream.
    * Only clients in the room will receive sensor data.
    */
-  @SubscribeMessage("av:subscribe")
+  @SubscribeMessage('av:subscribe')
   handleSubscribe(@ConnectedSocket() client: Socket) {
     void client.join(AV_ROOM);
     this.subscriberCount++;
-    this.logger.log(`📡 Client ${client.id} subscribed to AV stream (total: ${this.subscriberCount})`);
-    return { event: "av:subscribed", success: true };
+    this.logger.log(
+      `📡 Client ${client.id} subscribed to AV stream (total: ${this.subscriberCount})`,
+    );
+    return { event: 'av:subscribed', success: true };
   }
 
   /**
    * Client unsubscribes from AV sensor stream.
    */
-  @SubscribeMessage("av:unsubscribe")
+  @SubscribeMessage('av:unsubscribe')
   handleUnsubscribe(@ConnectedSocket() client: Socket) {
     void client.leave(AV_ROOM);
     this.subscriberCount--;
-    this.logger.log(`📡 Client ${client.id} unsubscribed from AV stream (total: ${this.subscriberCount})`);
-    return { event: "av:unsubscribed", success: true };
+    this.logger.log(
+      `📡 Client ${client.id} unsubscribed from AV stream (total: ${this.subscriberCount})`,
+    );
+    return { event: 'av:unsubscribed', success: true };
   }
 
   /**
@@ -103,22 +111,22 @@ export class AvSensorGateway
   // ─── Emit methods (called by AvSensorService) ────────────────────────────────
 
   emitGps(data: AvGpsData): void {
-    this.server.to(AV_ROOM).emit("av:gps", data);
+    this.server.to(AV_ROOM).emit('av:gps', data);
   }
 
   emitCamera(data: AvCameraData): void {
-    this.server.to(AV_ROOM).emit("av:camera", data);
+    this.server.to(AV_ROOM).emit('av:camera', data);
   }
 
   emitLidar(data: AvLidarData): void {
-    this.server.to(AV_ROOM).emit("av:lidar", data);
+    this.server.to(AV_ROOM).emit('av:lidar', data);
   }
 
   emitStatus(data: AvStatusData): void {
-    this.server.to(AV_ROOM).emit("av:status", data);
+    this.server.to(AV_ROOM).emit('av:status', data);
   }
 
   emitAnnotations(data: AvAnnotationsData): void {
-    this.server.to(AV_ROOM).emit("av:annotations", data);
+    this.server.to(AV_ROOM).emit('av:annotations', data);
   }
 }

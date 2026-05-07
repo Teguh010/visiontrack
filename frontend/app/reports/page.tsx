@@ -339,7 +339,7 @@ export default function ReportsPage() {
                 <YAxis stroke="#4b5563" tick={{ fontSize: 10 }} unit="%" />
                 <Tooltip
                   contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8 }}
-                  formatter={(v: number) => [`${v}%`, "Persentase"]}
+                  formatter={(v) => [`${Number(v ?? 0)}%`, "Persentase"]}
                 />
                 <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
                   {speedDist.bands.map((_, i) => (
@@ -362,9 +362,7 @@ export default function ReportsPage() {
                   cx="50%"
                   cy="50%"
                   outerRadius={80}
-                  label={({ label, percentage }: { label: string; percentage: number }) =>
-                    `${percentage}%`
-                  }
+                  label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`}
                 >
                   {speedDist.bands.filter(b => b.count > 0).map((_, i) => (
                     <Cell key={i} fill={BAND_COLORS[i % BAND_COLORS.length]} />
@@ -375,7 +373,7 @@ export default function ReportsPage() {
                 />
                 <Tooltip
                   contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8 }}
-                  formatter={(v: number) => [`${v}%`, "Persentase"]}
+                  formatter={(v) => [`${Number(v ?? 0)}%`, "Persentase"]}
                 />
               </PieChart>
             </ResponsiveContainer>

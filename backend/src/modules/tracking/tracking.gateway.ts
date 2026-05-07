@@ -19,18 +19,18 @@ import {
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
-} from "@nestjs/websockets";
-import { Logger } from "@nestjs/common";
-import { Server, Socket } from "socket.io";
-import { LastPosition } from "./tracking.service";
+} from '@nestjs/websockets';
+import { Logger } from '@nestjs/common';
+import { Server, Socket } from 'socket.io';
+import { LastPosition } from './tracking.service';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3001",
-    methods: ["GET", "POST"],
+    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    methods: ['GET', 'POST'],
     credentials: true,
   },
-  transports: ["websocket", "polling"],
+  transports: ['websocket', 'polling'],
 })
 export class TrackingGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -42,17 +42,21 @@ export class TrackingGateway
   private connectedClients = 0;
 
   afterInit() {
-    this.logger.log("📡 WebSocket Gateway initialized");
+    this.logger.log('📡 WebSocket Gateway initialized');
   }
 
   handleConnection(client: Socket) {
     this.connectedClients++;
-    this.logger.log(`🔌 Client connected: ${client.id} (total: ${this.connectedClients})`);
+    this.logger.log(
+      `🔌 Client connected: ${client.id} (total: ${this.connectedClients})`,
+    );
   }
 
   handleDisconnect(client: Socket) {
     this.connectedClients--;
-    this.logger.log(`🔌 Client disconnected: ${client.id} (total: ${this.connectedClients})`);
+    this.logger.log(
+      `🔌 Client disconnected: ${client.id} (total: ${this.connectedClients})`,
+    );
   }
 
   /**
@@ -60,20 +64,22 @@ export class TrackingGateway
    * Called by TrackingService after processing a new MQTT message.
    */
   emitVehicleUpdate(position: LastPosition): void {
-    this.server.emit("vehicle:update", position);
+    this.server.emit('vehicle:update', position);
   }
 
   /**
    * Optional: allow clients to subscribe to a specific vehicle only.
    * They'll join a Socket.IO room named after the vehicleId.
    */
-  @SubscribeMessage("subscribe:vehicle")
+  @SubscribeMessage('subscribe:vehicle')
   handleSubscribeVehicle(
     @MessageBody() vehicleId: string,
     @ConnectedSocket() client: Socket,
   ) {
     void client.join(`vehicle:${vehicleId}`);
-    this.logger.log(`📍 Client ${client.id} subscribed to vehicle: ${vehicleId}`);
-    return { event: "subscribed", vehicleId };
+    this.logger.log(
+      `📍 Client ${client.id} subscribed to vehicle: ${vehicleId}`,
+    );
+    return { event: 'subscribed', vehicleId };
   }
 }

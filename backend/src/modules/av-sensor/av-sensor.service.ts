@@ -7,9 +7,9 @@
  *  3. Emits real-time updates via WebSocket
  */
 
-import { Injectable, Logger } from "@nestjs/common";
-import { RedisService } from "../../redis/redis.service";
-import { AvSensorGateway } from "./av-sensor.gateway";
+import { Injectable, Logger } from '@nestjs/common';
+import { RedisService } from '../../redis/redis.service';
+import { AvSensorGateway } from './av-sensor.gateway';
 import {
   AvGpsPayload,
   AvGpsData,
@@ -24,15 +24,15 @@ import {
   AvAnnotation,
   AvVehicleState,
   CameraChannel,
-} from "./dto/av-sensor.dto";
+} from './dto/av-sensor.dto';
 
 // Redis keys
-const REDIS_AV_GPS         = "av:gps";
-const REDIS_AV_CAMERA      = "av:camera:";  // + channel
-const REDIS_AV_LIDAR       = "av:lidar";
-const REDIS_AV_STATUS      = "av:status";
-const REDIS_AV_ANNOTATIONS = "av:annotations";
-const REDIS_TTL_SECONDS    = 60 * 5;  // 5 minutes
+const REDIS_AV_GPS = 'av:gps';
+const REDIS_AV_CAMERA = 'av:camera:'; // + channel
+const REDIS_AV_LIDAR = 'av:lidar';
+const REDIS_AV_STATUS = 'av:status';
+const REDIS_AV_ANNOTATIONS = 'av:annotations';
+const REDIS_TTL_SECONDS = 60 * 5; // 5 minutes
 
 @Injectable()
 export class AvSensorService {
@@ -120,7 +120,9 @@ export class AvSensorService {
     // Emit to subscribers (with full point cloud)
     this.gateway.emitLidar(data);
 
-    this.logger.debug(`🔵 LiDAR frame ${data.frame}: ${data.pointCount} points`);
+    this.logger.debug(
+      `🔵 LiDAR frame ${data.frame}: ${data.pointCount} points`,
+    );
   }
 
   // ─── Status Processing ─────────────────────────────────────────────────────
@@ -141,7 +143,7 @@ export class AvSensorService {
     // Emit to subscribers
     this.gateway.emitStatus(data);
 
-    if (payload.status === "finished") {
+    if (payload.status === 'finished') {
       this.logger.log(`🏁 Scene ${data.scene} finished`);
     }
   }
@@ -181,12 +183,18 @@ export class AvSensorService {
       frame: data.frame,
       updatedAt: data.updatedAt,
     };
-    await this.redis.setJson(REDIS_AV_ANNOTATIONS, cacheData, REDIS_TTL_SECONDS);
+    await this.redis.setJson(
+      REDIS_AV_ANNOTATIONS,
+      cacheData,
+      REDIS_TTL_SECONDS,
+    );
 
     // Emit to subscribers (with full annotations)
     this.gateway.emitAnnotations(data);
 
-    this.logger.debug(`📦 Annotations frame ${data.frame}: ${data.count} objects`);
+    this.logger.debug(
+      `📦 Annotations frame ${data.frame}: ${data.count} objects`,
+    );
   }
 
   // ─── Get Current State ─────────────────────────────────────────────────────

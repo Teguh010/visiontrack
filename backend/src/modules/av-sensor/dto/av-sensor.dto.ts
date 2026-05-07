@@ -39,7 +39,7 @@ export interface AvGpsData {
 
 // ─── Camera Data ─────────────────────────────────────────────────────────────
 
-export type CameraChannel = 
+export type CameraChannel =
   | 'CAM_FRONT'
   | 'CAM_FRONT_LEFT'
   | 'CAM_FRONT_RIGHT'
@@ -49,7 +49,7 @@ export type CameraChannel =
 
 export interface AvCameraPayload {
   camera: CameraChannel;
-  image: string;  // base64 encoded
+  image: string; // base64 encoded
   timestamp: number;
   frame: number;
 }
@@ -115,7 +115,7 @@ export interface AvVehicleState {
 
 // ─── Annotation Data (3D Bounding Boxes) ─────────────────────────────────────
 
-export type ObjectCategory = 
+export type ObjectCategory =
   | 'human'
   | 'vehicle.car'
   | 'vehicle.truck'
@@ -124,7 +124,7 @@ export type ObjectCategory =
   | 'vehicle.bicycle'
   | 'movable_object';
 
-export type ObjectAttribute = 
+export type ObjectAttribute =
   | 'vehicle.moving'
   | 'vehicle.stopped'
   | 'vehicle.parked'
