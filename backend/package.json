@@ -4,6 +4,9 @@
   "description": "NestJS backend for real-time fleet tracking system with MQTT, WebSocket, Redis, and PostgreSQL",
   "author": "Teguh Badrusalam",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Teguh010/visiontrack.git",
