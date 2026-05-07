@@ -1,10 +1,22 @@
 {
-  "name": "backend",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
-  "private": true,
-  "license": "UNLICENSED",
+  "name": "realtime-tracking-backend",
+  "version": "1.0.0",
+  "description": "NestJS backend for real-time fleet tracking system with MQTT, WebSocket, Redis, and PostgreSQL",
+  "author": "Teguh Badrusalam",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/teguhbadru/realtime-tracking-system.git",
+    "directory": "backend"
+  },
+  "keywords": [
+    "fleet-tracking",
+    "real-time",
+    "mqtt",
+    "websocket",
+    "nestjs",
+    "iot"
+  ],
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
