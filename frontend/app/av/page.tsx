@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAvSensorSocket } from "@/hooks/useAvSensorSocket";
 import { CameraGrid } from "@/components/av/CameraGrid";
 import { LidarMultiView } from "@/components/av/LidarMultiView";
@@ -19,6 +19,23 @@ type MapMode = "trajectory" | "bev" | "world";
 export default function AvDashboardPage() {
   const { connected, gps, cameras, lidar, status, annotations } = useAvSensorSocket();
   const [mapMode, setMapMode] = useState<MapMode>("world");
+  const mapPanelRef = useRef<HTMLDivElement>(null);
+  const [mapViewWidth, setMapViewWidth] = useState(288);
+
+  useEffect(() => {
+    const el = mapPanelRef.current;
+    if (!el) return;
+
+    const updateSize = () => {
+      const next = Math.max(260, Math.floor(el.clientWidth));
+      setMapViewWidth(next);
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="flex flex-col h-screen p-4 gap-4 overflow-hidden">
@@ -113,6 +130,72 @@ export default function AvDashboardPage() {
           <div className="flex-1 overflow-auto">
             <CameraGrid cameras={cameras} />
           </div>
+
+          {/* Position View with Toggle */}
+          <div ref={mapPanelRef} className="mt-4 shrink-0">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                {mapMode === "trajectory" && <Navigation className="w-4 h-4 text-emerald-400" />}
+                {mapMode === "bev" && <Eye className="w-4 h-4 text-emerald-400" />}
+                {mapMode === "world" && <Map className="w-4 h-4 text-emerald-400" />}
+                <h2 className="text-sm font-semibold text-gray-300">
+                  {mapMode === "trajectory" && "Local Trajectory"}
+                  {mapMode === "bev" && "Bird's Eye View"}
+                  {mapMode === "world" && "World Map"}
+                </h2>
+              </div>
+              {/* Toggle buttons */}
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setMapMode("trajectory")}
+                  className={`px-1.5 py-0.5 rounded text-[9px] transition-colors ${
+                    mapMode === "trajectory"
+                      ? "bg-emerald-500 text-white"
+                      : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                  }`}
+                  title="Local trajectory view"
+                >
+                  Trail
+                </button>
+                <button
+                  onClick={() => setMapMode("bev")}
+                  className={`px-1.5 py-0.5 rounded text-[9px] transition-colors ${
+                    mapMode === "bev"
+                      ? "bg-emerald-500 text-white"
+                      : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                  }`}
+                  title="Bird's Eye View"
+                >
+                  BEV
+                </button>
+                <button
+                  onClick={() => setMapMode("world")}
+                  className={`px-1.5 py-0.5 rounded text-[9px] transition-colors ${
+                    mapMode === "world"
+                      ? "bg-emerald-500 text-white"
+                      : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                  }`}
+                  title="World map (approximate)"
+                >
+                  World
+                </button>
+              </div>
+            </div>
+            {mapMode === "trajectory" && (
+              <LocalTrajectoryView gps={gps} width={mapViewWidth} height={220} />
+            )}
+            {mapMode === "bev" && (
+              <BirdEyeView gps={gps} width={mapViewWidth} height={220} />
+            )}
+            {mapMode === "world" && (
+              <>
+                <AvMiniMap gps={gps} height={220} />
+                <p className="text-[10px] text-gray-500 mt-1 text-center">
+                  ⚠️ Coordinates are approximate (local → GPS)
+                </p>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Right: Sidebar with Status, Map, LiDAR — scrollable */}
@@ -126,72 +209,6 @@ export default function AvDashboardPage() {
                 width={340} 
                 height={420} 
               />
-            </div>
-
-            {/* Position View with Toggle */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {mapMode === "trajectory" && <Navigation className="w-4 h-4 text-emerald-400" />}
-                  {mapMode === "bev" && <Eye className="w-4 h-4 text-emerald-400" />}
-                  {mapMode === "world" && <Map className="w-4 h-4 text-emerald-400" />}
-                  <h2 className="text-sm font-semibold text-gray-300">
-                    {mapMode === "trajectory" && "Local Trajectory"}
-                    {mapMode === "bev" && "Bird's Eye View"}
-                    {mapMode === "world" && "World Map"}
-                  </h2>
-                </div>
-                {/* Toggle buttons */}
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setMapMode("trajectory")}
-                    className={`px-1.5 py-0.5 rounded text-[9px] transition-colors ${
-                      mapMode === "trajectory"
-                        ? "bg-emerald-500 text-white"
-                        : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-                    }`}
-                    title="Local trajectory view"
-                  >
-                    Trail
-                  </button>
-                  <button
-                    onClick={() => setMapMode("bev")}
-                    className={`px-1.5 py-0.5 rounded text-[9px] transition-colors ${
-                      mapMode === "bev"
-                        ? "bg-emerald-500 text-white"
-                        : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-                    }`}
-                    title="Bird's Eye View"
-                  >
-                    BEV
-                  </button>
-                  <button
-                    onClick={() => setMapMode("world")}
-                    className={`px-1.5 py-0.5 rounded text-[9px] transition-colors ${
-                      mapMode === "world"
-                        ? "bg-emerald-500 text-white"
-                        : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-                    }`}
-                    title="World map (approximate)"
-                  >
-                    World
-                  </button>
-                </div>
-              </div>
-              {mapMode === "trajectory" && (
-                <LocalTrajectoryView gps={gps} width={288} height={200} />
-              )}
-              {mapMode === "bev" && (
-                <BirdEyeView gps={gps} width={288} height={200} />
-              )}
-              {mapMode === "world" && (
-                <>
-                  <AvMiniMap gps={gps} height={200} />
-                  <p className="text-[10px] text-gray-500 mt-1 text-center">
-                    ⚠️ Coordinates are approximate (local → GPS)
-                  </p>
-                </>
-              )}
             </div>
 
              {/* Status Panel */}
