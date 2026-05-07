@@ -34,6 +34,8 @@ from pathlib import Path
 import numpy as np
 import paho.mqtt.client as mqtt
 from nuscenes.nuscenes import NuScenes
+from nuscenes.utils.geometry_utils import view_points
+from pyquaternion import Quaternion
 
 # ---------------------------------------------------------------------------
 # Config
@@ -335,6 +337,72 @@ class NuScenesReplayer:
         annotations.sort(key=lambda a: a['distance'])
         return annotations, current_tracks
 
+    def get_camera_2d_boxes(self, sample, cam_name):
+        """Project 3D annotations to 2D boxes in a camera image."""
+        if cam_name not in sample['data']:
+            return [], 0, 0
+
+        cam_data = self.nusc.get('sample_data', sample['data'][cam_name])
+        calibrated = self.nusc.get('calibrated_sensor', cam_data['calibrated_sensor_token'])
+        ego_pose = self.nusc.get('ego_pose', cam_data['ego_pose_token'])
+        intrinsic = np.array(calibrated['camera_intrinsic'])
+        image_width = int(cam_data.get('width', 1600))
+        image_height = int(cam_data.get('height', 900))
+
+        bboxes = []
+        for ann_token in sample['anns']:
+            ann = self.nusc.get('sample_annotation', ann_token)
+            box = self.nusc.get_box(ann_token)
+
+            # Transform box from global to ego frame, then to camera frame.
+            box.translate(-np.array(ego_pose['translation']))
+            box.rotate(Quaternion(ego_pose['rotation']).inverse)
+            box.translate(-np.array(calibrated['translation']))
+            box.rotate(Quaternion(calibrated['rotation']).inverse)
+
+            corners_3d = box.corners()
+            in_front = corners_3d[2, :] > 0.1
+            if not np.any(in_front):
+                continue
+
+            corners_2d = view_points(corners_3d[:, in_front], intrinsic, normalize=True)
+            xs = corners_2d[0, :]
+            ys = corners_2d[1, :]
+
+            x1 = max(0.0, float(np.min(xs)))
+            y1 = max(0.0, float(np.min(ys)))
+            x2 = min(image_width - 1.0, float(np.max(xs)))
+            y2 = min(image_height - 1.0, float(np.max(ys)))
+
+            if x2 <= x1 or y2 <= y1:
+                continue
+
+            instance_token = ann['instance_token']
+            category_token = self.instance_lookup.get(instance_token, '')
+            category_name = self.category_lookup.get(category_token, 'unknown')
+            simplified_cat = get_simplified_category(category_name)
+            color = CATEGORY_COLORS.get(simplified_cat, '#64748b')
+
+            dx = ann['translation'][0] - ego_pose['translation'][0]
+            dy = ann['translation'][1] - ego_pose['translation'][1]
+            distance = math.sqrt(dx * dx + dy * dy)
+
+            bboxes.append({
+                'id': ann_token[:8],
+                'track_id': instance_token,
+                'label': simplified_cat,
+                'label_full': category_name,
+                'color': color,
+                'distance': round(distance, 1),
+                # Normalized 0..1 coords for frontend responsiveness
+                'x': round(x1 / image_width, 4),
+                'y': round(y1 / image_height, 4),
+                'w': round((x2 - x1) / image_width, 4),
+                'h': round((y2 - y1) / image_height, 4),
+            })
+
+        return bboxes, image_width, image_height
+
     def list_scenes(self):
         """Print all available scenes."""
         print("\nAvailable scenes:")
@@ -417,11 +485,15 @@ class NuScenesReplayer:
                         cam_b64   = encode_image(cam_path)
                         if cam_b64:
                             topic = f"vehicle/camera/{cam_name}"
+                            bboxes, image_width, image_height = self.get_camera_2d_boxes(sample, cam_name)
                             payload = json.dumps({
                                 "camera":    cam_name,
                                 "image":     cam_b64,
                                 "timestamp": ts,
                                 "frame":     frame_idx,
+                                "image_width": image_width,
+                                "image_height": image_height,
+                                "bboxes": bboxes,
                             })
                             self.client.publish(topic, payload, qos=0)
 

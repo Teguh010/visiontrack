@@ -52,6 +52,33 @@ export interface AvCameraPayload {
   image: string; // base64 encoded
   timestamp: number;
   frame: number;
+  image_width?: number;
+  image_height?: number;
+  bboxes?: {
+    id: string;
+    track_id: string;
+    label: string;
+    label_full: string;
+    color: string;
+    distance: number;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  }[];
+}
+
+export interface AvCameraBbox {
+  id: string;
+  trackId: string;
+  label: string;
+  labelFull: string;
+  color: string;
+  distance: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 export interface AvCameraData {
@@ -59,6 +86,9 @@ export interface AvCameraData {
   image: string;
   timestamp: number;
   frame: number;
+  imageWidth: number;
+  imageHeight: number;
+  bboxes: AvCameraBbox[];
   updatedAt: string;
 }
 

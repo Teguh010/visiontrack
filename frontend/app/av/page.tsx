@@ -182,14 +182,14 @@ export default function AvDashboardPage() {
               </div>
             </div>
             {mapMode === "trajectory" && (
-              <LocalTrajectoryView gps={gps} width={mapViewWidth} height={220} />
+              <LocalTrajectoryView gps={gps} width={mapViewWidth} height={300} />
             )}
             {mapMode === "bev" && (
-              <BirdEyeView gps={gps} width={mapViewWidth} height={220} />
+              <BirdEyeView gps={gps} width={mapViewWidth} height={300} />
             )}
             {mapMode === "world" && (
               <>
-                <AvMiniMap gps={gps} height={220} />
+                <AvMiniMap gps={gps} height={300} />
                 <p className="text-[10px] text-gray-500 mt-1 text-center">
                   ⚠️ Coordinates are approximate (local → GPS)
                 </p>

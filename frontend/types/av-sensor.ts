@@ -36,7 +36,24 @@ export interface AvCameraData {
   image: string;  // base64 encoded
   timestamp: number;
   frame: number;
+  imageWidth: number;
+  imageHeight: number;
+  bboxes: AvCameraBbox[];
   updatedAt: string;
+}
+
+export interface AvCameraBbox {
+  id: string;
+  trackId: string;
+  label: string;
+  labelFull: string;
+  color: string;
+  distance: number;
+  // Normalized coordinates (0..1)
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 // ─── LiDAR Data ──────────────────────────────────────────────────────────────

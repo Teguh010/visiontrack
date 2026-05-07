@@ -81,6 +81,20 @@ export class AvSensorService {
       image: payload.image,
       timestamp: payload.timestamp,
       frame: payload.frame,
+      imageWidth: payload.image_width ?? 0,
+      imageHeight: payload.image_height ?? 0,
+      bboxes: (payload.bboxes ?? []).map((bbox) => ({
+        id: bbox.id,
+        trackId: bbox.track_id,
+        label: bbox.label,
+        labelFull: bbox.label_full,
+        color: bbox.color,
+        distance: bbox.distance,
+        x: bbox.x,
+        y: bbox.y,
+        w: bbox.w,
+        h: bbox.h,
+      })),
       updatedAt: new Date().toISOString(),
     };
 
