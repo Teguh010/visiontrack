@@ -221,13 +221,69 @@ data/nuscenes/
 
 ### 2) Run the nuScenes replayer
 
+Replayer prerequisites (recommended order):
+
+1. Start infrastructure:
+
+```bash
+docker compose up -d
+```
+
+2. Start backend (`:3000`):
+
+```bash
+cd backend
+npm run start:dev
+```
+
+3. Start frontend (`:3001`):
+
+```bash
+cd frontend
+npm run dev
+```
+
+4. Install Python dependencies for replayer:
+
+```bash
+cd replayer
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Run commands:
+
 ```bash
 cd replayer
 python3 nuscenes_replayer.py --list-scenes
 python3 nuscenes_replayer.py --scene 0 --speed 1.0 --loop
 ```
 
+Longer demo replay (multiple scenes):
+
+```bash
+python3 nuscenes_replayer.py --scene-start 0 --scene-count 6 --speed 1.0
+```
+
+Run range once only (no repeat):
+
+```bash
+python3 nuscenes_replayer.py --scene-start 0 --scene-count 6 --speed 1.0 --once
+```
+
+Optional flags:
+
+- `--no-camera` → skip camera stream
+- `--no-lidar` → skip LiDAR stream
+- `--broker` / `--port` → custom MQTT host/port
+
 > The replayer default `dataroot` is `../data/nuscenes`, so make sure your dataset follows the folder structure above.
+>
+> If `/av` shows no updates, check:
+> - backend is connected to MQTT (`mqtt://localhost:1883`)
+> - replayer dataroot points to `../data/nuscenes`
+> - backend and frontend are running on `:3000` and `:3001`
 
 ### 3) Example payloads published to MQTT
 
