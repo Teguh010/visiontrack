@@ -100,7 +100,7 @@ export default function AvMiniMapInner({ gps }: AvMiniMapInnerProps) {
 
       {position && (
         <>
-          <MapPanner position={position} heading={gps?.heading ?? 0} />
+          <MapPanner position={position} />
           <Marker
             position={position}
             icon={getAvCarIcon(gps?.heading ?? 0)}
