@@ -210,7 +210,7 @@ MIT License
 
 ---
 
-## 👤 Author
+## 👤 Author Teguh Badrusalam
 
 Fullstack Developer specializing in **Next.js**, **NestJS**, and **GIS/AV Systems**
 

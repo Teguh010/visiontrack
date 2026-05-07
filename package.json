@@ -1,7 +1,21 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
-  "private": true,
+  "name": "realtime-tracking-frontend",
+  "version": "1.0.0",
+  "description": "Next.js dashboard for real-time fleet tracking with live maps and analytics",
+  "author": "Teguh Badrusalam",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/teguhbadru/realtime-tracking-system.git",
+    "directory": "frontend"
+  },
+  "keywords": [
+    "fleet-tracking",
+    "dashboard",
+    "nextjs",
+    "leaflet",
+    "real-time"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
