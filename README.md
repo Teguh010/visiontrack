@@ -5,7 +5,7 @@
 ### Real-Time Fleet Tracking & Autonomous Vehicle Sensor Platform
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![CI](https://github.com/teguhbadru/visiontrack/actions/workflows/ci.yml/badge.svg)](https://github.com/teguhbadru/visiontrack/actions/workflows/ci.yml)
+[![CI](https://github.com/Teguh010/visiontrack/actions/workflows/ci.yml/badge.svg)](https://github.com/Teguh010/visiontrack/actions/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
@@ -23,11 +23,9 @@
   <a href="#-contributing">Contributing</a>
 </p>
 
----
-
-![Dashboard Preview](https://via.placeholder.com/1200x600/1a1a2e/eaeaea?text=VisionTrack+Dashboard+Preview)
-
 </div>
+
+---
 
 ## ✨ Features
 
@@ -125,7 +123,7 @@
 ### 1. Clone & Setup
 
 ```bash
-git clone https://github.com/teguhbadru/visiontrack.git
+git clone https://github.com/Teguh010/visiontrack.git
 cd visiontrack
 ```
 
@@ -329,7 +327,7 @@ Fullstack Developer specializing in real-time systems, IoT, and geospatial appli
 
 **⭐ Star this repo if you find it useful!**
 
-[Report Bug](https://github.com/teguhbadru/visiontrack/issues/new?template=bug_report.md) •
-[Request Feature](https://github.com/teguhbadru/visiontrack/issues/new?template=feature_request.md)
+[Report Bug](https://github.com/Teguh010/visiontrack/issues/new?template=bug_report.md) •
+[Request Feature](https://github.com/Teguh010/visiontrack/issues/new?template=feature_request.md)
 
 </div>
