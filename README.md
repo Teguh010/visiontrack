@@ -16,15 +16,57 @@
 </p>
 
 <p align="center">
+  <a href="#-tldr">TL;DR</a> •
+  <a href="#-why-this-project-exists">Why</a> •
+  <a href="#-key-engineering-decisions">Decisions</a> •
   <a href="#-features">Features</a> •
+  <a href="#%EF%B8%8F-roadmap">Roadmap</a> •
   <a href="#-quick-start">Quick Start</a> •
   <a href="#-nuscenes-dataset-setup-av-sensor">nuScenes Setup</a> •
-  <a href="#-architecture">Architecture</a> •
+  <a href="#%EF%B8%8F-architecture">Architecture</a> •
   <a href="#-documentation">Docs</a> •
   <a href="#-contributing">Contributing</a>
 </p>
 
 </div>
+
+---
+
+## 🚀 TL;DR
+
+VisionTrack is a production-style simulation of a real-time Autonomous Vehicle (AV) data pipeline —
+covering sensor ingestion (LiDAR, camera, GPS), stream processing, and live visualization.
+
+It is designed to mirror how modern AV systems handle high-frequency data using **MQTT**, **WebSocket**, and **event-driven architecture**.
+
+---
+
+## 🎯 Why This Project Exists
+
+Most AV systems rely on complex real-time pipelines to process sensor data reliably and at scale.
+
+This project was built to:
+- explore how AV data flows end-to-end (sensor → backend → visualization)
+- simulate real-world ingestion using MQTT and streaming systems
+- understand how to process and render high-frequency sensor data in real time
+
+Instead of focusing only on theory, VisionTrack aims to replicate a working system that reflects real production architecture.
+
+---
+
+## ⚡ Key Engineering Decisions
+
+- **MQTT over HTTP** — Chosen for efficient, low-latency ingestion of high-frequency sensor data
+- **WebSocket for real-time delivery** — Enables sub-second updates without polling overhead
+- **Redis as transient state layer** — Separates real-time processing from historical persistence
+- **Source-agnostic architecture** — Designed so nuScenes can be replaced with real AV systems (e.g., ROS2, CAN bus)
+- **Event-driven modular design** — Improves scalability, extensibility, and maintainability
+
+---
+
+## 📈 Development Progress
+
+This project is actively developed and evolves daily, with a focus on moving from simulation toward real-world AV system readiness.
 
 ---
 
@@ -54,6 +96,39 @@
 - **Modular monorepo** — Cleanly separated backend, frontend, simulator, and replayer
 - **Type-safe** — Full TypeScript across all packages
 - **Production-ready** — Docker Compose, CI/CD, proper error handling
+
+---
+
+## 🛣️ Roadmap
+
+### ✅ Phase 1 — Foundation (Completed)
+- Monorepo setup (NestJS + Next.js + Docker)
+- MQTT ingestion pipeline
+- Real-time WebSocket streaming
+- Fleet tracking + analytics + history playback
+
+### ✅ Phase 2 — AV Sensor Integration (Completed)
+- nuScenes dataset integration
+- Multi-sensor ingestion (LiDAR, camera, GPS)
+- AV dashboard with visualization (LiDAR, camera, annotations)
+- Bounding box rendering & TTC-based risk analysis
+
+### 🚧 Phase 3 — System Refinement (In Progress)
+- Improve LiDAR rendering & multi-view performance
+- Enhance UI responsiveness
+- Optimize data transformation pipeline
+- Improve modularity & maintainability
+
+### 🔜 Phase 4 — Production Simulation (Planned)
+- Multi-vehicle AV simulation
+- Scenario-based replay (urban/highway)
+- Sensor anomaly detection
+- Performance benchmarking
+
+### 🔮 Phase 5 — Real Integration Readiness (Future)
+- ROS2 bridge integration
+- Real sensor ingestion (CAN bus, perception stack)
+- Cloud deployment (scalable architecture)
 
 ---
 
