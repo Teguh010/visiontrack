@@ -70,9 +70,14 @@ Instead of focusing only on theory, VisionTrack aims to replicate a working syst
 
 ---
 
-## 📈 Development Progress
+## 🌍 Open Source & Active Development
 
-This project is actively developed and evolves daily, with a focus on moving from simulation toward real-world AV system readiness.
+
+This project is open source and continuously evolving.
+
+New features, improvements, and experiments are pushed frequently as part of an ongoing effort to simulate real-world Autonomous Vehicle systems.
+
+Contributions, discussions, and ideas are highly welcome.
 
 ---
 
