@@ -39,6 +39,12 @@ covering sensor ingestion (LiDAR, camera, GPS), stream processing, and live visu
 
 It is designed to mirror how modern AV systems handle high-frequency data using **MQTT**, **WebSocket**, and **event-driven architecture**.
 
+<p align="center">
+  <img src="docs/av-dashboard-ss.png" alt="AV Sensor Dashboard — six camera feeds, map, LiDAR BEV, object table, and TTC risk banner" width="920" />
+</p>
+
+<p align="center"><em>AV Sensor Dashboard at <code>/av</code> — nuScenes replay with multi-camera overlays, LiDAR top view, map, and TTC-based risk.</em></p>
+
 ---
 
 ## 🎯 Why This Project Exists
