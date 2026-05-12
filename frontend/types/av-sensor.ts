@@ -69,6 +69,14 @@ export interface AvLidarData {
   updatedAt: string;
 }
 
+/** Redis/API snapshot without point array (matches backend cache) */
+export interface AvLidarCacheMeta {
+  pointCount: number;
+  timestamp: number;
+  frame: number;
+  updatedAt: string;
+}
+
 // ─── Status Data ─────────────────────────────────────────────────────────────
 
 export type ReplayStatus = 'playing' | 'paused' | 'finished' | 'idle';
@@ -82,19 +90,9 @@ export interface AvStatusData {
   updatedAt: string;
 }
 
-// ─── Combined AV State ───────────────────────────────────────────────────────
-
-export interface AvVehicleState {
-  gps: AvGpsData | null;
-  cameras: Partial<Record<CameraChannel, AvCameraData>>;
-  lidar: AvLidarData | null;
-  status: AvStatusData | null;
-  annotations: AvAnnotationsData | null;
-}
-
 // ─── Annotation Data (3D Bounding Boxes) ─────────────────────────────────────
 
-export type ObjectCategory = 
+export type ObjectCategory =
   | 'human'
   | 'vehicle.car'
   | 'vehicle.truck'
@@ -149,6 +147,24 @@ export interface AvAnnotationsData {
   frame: number;
   count: number;
   updatedAt: string;
+}
+
+/** Redis/API snapshot without annotations array */
+export interface AvAnnotationsCacheMeta {
+  count: number;
+  timestamp: number;
+  frame: number;
+  updatedAt: string;
+}
+
+// ─── Combined AV State (REST `/av/state` may return cache meta for lidar/annotations) ──
+
+export interface AvVehicleState {
+  gps: AvGpsData | null;
+  cameras: Partial<Record<CameraChannel, AvCameraData>>;
+  lidar: AvLidarData | AvLidarCacheMeta | null;
+  status: AvStatusData | null;
+  annotations: AvAnnotationsData | AvAnnotationsCacheMeta | null;
 }
 
 // ─── Camera Layout Info ──────────────────────────────────────────────────────
