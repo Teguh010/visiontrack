@@ -10,6 +10,7 @@ import {
   AvAnnotationsData,
   CameraChannel,
 } from "@/types/av-sensor";
+import { AV_EVENTS } from "@/lib/av-events";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3000";
 
@@ -46,7 +47,7 @@ export function useAvSensorSocket() {
       setConnected(true);
 
       // Subscribe to AV sensor stream
-      socket.emit("av:subscribe");
+      socket.emit(AV_EVENTS.subscribe);
     });
 
     socket.on("disconnect", () => {
@@ -55,12 +56,12 @@ export function useAvSensorSocket() {
     });
 
     // GPS updates
-    socket.on("av:gps", (data: AvGpsData) => {
+    socket.on(AV_EVENTS.gps, (data: AvGpsData) => {
       setGps(data);
     });
 
     // Camera updates
-    socket.on("av:camera", (data: AvCameraData) => {
+    socket.on(AV_EVENTS.camera, (data: AvCameraData) => {
       setCameras((prev) => {
         const next = new Map(prev);
         next.set(data.camera, data);
@@ -69,22 +70,22 @@ export function useAvSensorSocket() {
     });
 
     // LiDAR updates
-    socket.on("av:lidar", (data: AvLidarData) => {
+    socket.on(AV_EVENTS.lidar, (data: AvLidarData) => {
       setLidar(data);
     });
 
     // Status updates
-    socket.on("av:status", (data: AvStatusData) => {
+    socket.on(AV_EVENTS.status, (data: AvStatusData) => {
       setStatus(data);
     });
 
     // Annotations updates (3D bounding boxes)
-    socket.on("av:annotations", (data: AvAnnotationsData) => {
+    socket.on(AV_EVENTS.annotations, (data: AvAnnotationsData) => {
       setAnnotations(data);
     });
 
     return () => {
-      socket.emit("av:unsubscribe");
+      socket.emit(AV_EVENTS.unsubscribe);
       socket.disconnect();
     };
   }, []);

@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import { AvLidarData, AvAnnotationsData, AvAnnotation, LidarPoint } from "@/types/av-sensor";
+import {
+  HEIGHT_ZONES,
+  getHeightColor,
+  getCategoryConfig,
+} from "@/lib/lidar-canvas";
 import { 
   Radar, Eye, EyeOff, Car,
   AlertTriangle, Layers 
@@ -18,48 +23,6 @@ interface SceneAnalysis {
   groups: Record<string, AvAnnotation[]>;
   closest: AvAnnotation | null;
   total: number;
-}
-
-// Height-based color zones for environment understanding
-const HEIGHT_ZONES = [
-  { max: -1.5, color: "#1e3a5f", label: "Below Ground" },      // Deep blue - pits/curbs
-  { max: -0.3, color: "#2d4a3e", label: "Ground Level" },      // Dark green - road
-  { max: 0.3,  color: "#3d5a4e", label: "Low Objects" },       // Green - curbs, small objects
-  { max: 1.0,  color: "#8b7355", label: "Medium" },            // Brown - cars, barriers
-  { max: 2.0,  color: "#c9a227", label: "Vehicle Height" },    // Yellow - trucks, vans
-  { max: 4.0,  color: "#e85d04", label: "Tall Objects" },      // Orange - buildings, trees
-  { max: Infinity, color: "#9d0208", label: "Very Tall" },     // Red - high structures
-];
-
-// Object category icons and colors
-const CATEGORY_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
-  "human": { icon: "👤", color: "#ef4444", label: "Pedestrian" },
-  "vehicle.car": { icon: "🚗", color: "#3b82f6", label: "Car" },
-  "vehicle.truck": { icon: "🚛", color: "#8b5cf6", label: "Truck" },
-  "vehicle.bus": { icon: "🚌", color: "#6366f1", label: "Bus" },
-  "vehicle.motorcycle": { icon: "🏍️", color: "#ec4899", label: "Motorcycle" },
-  "vehicle.bicycle": { icon: "🚲", color: "#14b8a6", label: "Bicycle" },
-  "vehicle.construction": { icon: "🚜", color: "#f59e0b", label: "Construction" },
-  "movable_object": { icon: "📦", color: "#78716c", label: "Object" },
-  "static_object": { icon: "🏗️", color: "#64748b", label: "Static" },
-};
-
-function getHeightColor(z: number): string {
-  for (const zone of HEIGHT_ZONES) {
-    if (z < zone.max) return zone.color;
-  }
-  return HEIGHT_ZONES[HEIGHT_ZONES.length - 1].color;
-}
-
-function getCategoryConfig(category: string) {
-  // Try exact match first, then partial match
-  if (CATEGORY_CONFIG[category]) return CATEGORY_CONFIG[category];
-  for (const [key, config] of Object.entries(CATEGORY_CONFIG)) {
-    if (category.includes(key) || key.includes(category.split('.')[0])) {
-      return config;
-    }
-  }
-  return { icon: "❓", color: "#9ca3af", label: category };
 }
 
 export function LidarSceneView({ lidar, annotations, width = 400, height = 400 }: LidarSceneViewProps) {

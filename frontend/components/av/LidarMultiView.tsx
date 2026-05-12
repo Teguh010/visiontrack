@@ -2,18 +2,31 @@
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import { AvLidarData, AvAnnotationsData, AvAnnotation, LidarPoint } from "@/types/av-sensor";
-import { 
-  Radar, Eye, EyeOff, Car, Layers, 
+import {
+  HEIGHT_ZONES,
+  getHeightColor,
+  getCategoryConfig,
+  type LidarMultiViewAngle,
+  LIDAR_MULTI_VIEW_LABELS,
+  LIDAR_MULTI_VIEW_DIRECTIONS,
+  multiViewTransform,
+  multiViewBoxTransform,
+  filterLidarPointsForMultiView,
+  filterLidarPointsInRange,
+} from "@/lib/lidar-canvas";
+import {
+  Radar, Eye, EyeOff, Car, Layers,
   AlertTriangle, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Grid3X3
 } from "lucide-react";
 
-type ViewAngle = "top" | "front" | "rear" | "left" | "right";
+type ViewAngle = LidarMultiViewAngle;
 type LayoutMode = "single" | "quad";
 
 interface LidarMultiViewProps {
   lidar: AvLidarData | null;
   annotations?: AvAnnotationsData | null;
   width?: number;
+  /** When omitted, aspect ratio defaults to 500/400 vs `width` */
   height?: number;
 }
 
@@ -46,90 +59,14 @@ const TTC_DANGER_SEC = 2;
 const TTC_CAUTION_SEC = 5;
 const TTC_EPSILON = 0.1;
 
-// View configurations
-const VIEW_CONFIG: Record<ViewAngle, { 
-  label: string; 
-  icon: React.ReactNode;
-  transform: (x: number, y: number, z: number, scale: number, cx: number, cy: number) => [number, number];
-  boxTransform: (ann: AvAnnotation, scale: number) => { w: number; h: number; rotation: number };
-  directions: { top: string; bottom: string; left: string; right: string };
-}> = {
-  top: {
-    label: "Top (Bird's Eye)",
-    icon: <div className="w-3 h-3 rounded-full border-2 border-current" />,
-    transform: (x, y, _z, scale, cx, cy) => [cx - y * scale, cy - x * scale],
-    boxTransform: (ann, scale) => ({ w: ann.length * scale, h: ann.width * scale, rotation: -ann.yaw }),
-    directions: { top: "FRONT", bottom: "REAR", left: "RIGHT", right: "LEFT" },
-  },
-  front: {
-    label: "Front View",
-    icon: <ArrowUp className="w-3 h-3" />,
-    transform: (x, y, z, scale, cx, cy) => [cx - y * scale, cy - z * scale * 1.5],
-    boxTransform: (ann, scale) => ({ w: ann.width * scale, h: ann.height * scale * 1.5, rotation: 0 }),
-    directions: { top: "UP", bottom: "DOWN", left: "RIGHT", right: "LEFT" },
-  },
-  rear: {
-    label: "Rear View",
-    icon: <ArrowDown className="w-3 h-3" />,
-    transform: (x, y, z, scale, cx, cy) => [cx + y * scale, cy - z * scale * 1.5],
-    boxTransform: (ann, scale) => ({ w: ann.width * scale, h: ann.height * scale * 1.5, rotation: 0 }),
-    directions: { top: "UP", bottom: "DOWN", left: "LEFT", right: "RIGHT" },
-  },
-  left: {
-    label: "Left Side View",
-    icon: <ArrowLeft className="w-3 h-3" />,
-    transform: (x, y, z, scale, cx, cy) => [cx + x * scale, cy - z * scale * 1.5],
-    boxTransform: (ann, scale) => ({ w: ann.length * scale, h: ann.height * scale * 1.5, rotation: 0 }),
-    directions: { top: "UP", bottom: "DOWN", left: "REAR", right: "FRONT" },
-  },
-  right: {
-    label: "Right Side View",
-    icon: <ArrowRight className="w-3 h-3" />,
-    transform: (x, y, z, scale, cx, cy) => [cx - x * scale, cy - z * scale * 1.5],
-    boxTransform: (ann, scale) => ({ w: ann.length * scale, h: ann.height * scale * 1.5, rotation: 0 }),
-    directions: { top: "UP", bottom: "DOWN", left: "FRONT", right: "REAR" },
-  },
+// Per-view UI (icons only; projection lives in @/lib/lidar-canvas)
+const VIEW_ICONS: Record<ViewAngle, React.ReactNode> = {
+  top: <div className="w-3 h-3 rounded-full border-2 border-current" />,
+  front: <ArrowUp className="w-3 h-3" />,
+  rear: <ArrowDown className="w-3 h-3" />,
+  left: <ArrowLeft className="w-3 h-3" />,
+  right: <ArrowRight className="w-3 h-3" />,
 };
-
-// Height-based color zones
-const HEIGHT_ZONES = [
-  { max: -1.5, color: "#1e3a5f" },
-  { max: -0.3, color: "#2d4a3e" },
-  { max: 0.3,  color: "#3d5a4e" },
-  { max: 1.0,  color: "#8b7355" },
-  { max: 2.0,  color: "#c9a227" },
-  { max: 4.0,  color: "#e85d04" },
-  { max: Infinity, color: "#9d0208" },
-];
-
-const CATEGORY_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
-  "human": { icon: "👤", color: "#ef4444", label: "Pedestrian" },
-  "vehicle.car": { icon: "🚗", color: "#3b82f6", label: "Car" },
-  "vehicle.truck": { icon: "🚛", color: "#8b5cf6", label: "Truck" },
-  "vehicle.bus": { icon: "🚌", color: "#6366f1", label: "Bus" },
-  "vehicle.motorcycle": { icon: "🏍️", color: "#ec4899", label: "Motorcycle" },
-  "vehicle.bicycle": { icon: "🚲", color: "#14b8a6", label: "Bicycle" },
-  "vehicle.construction": { icon: "🚜", color: "#f59e0b", label: "Construction" },
-  "movable_object": { icon: "📦", color: "#78716c", label: "Object" },
-  "static_object": { icon: "🏗️", color: "#64748b", label: "Static" },
-};
-
-function getHeightColor(z: number): string {
-  for (const zone of HEIGHT_ZONES) {
-    if (z < zone.max) return zone.color;
-  }
-  return HEIGHT_ZONES[HEIGHT_ZONES.length - 1].color;
-}
-
-function getCategoryConfig(category: string) {
-  if (CATEGORY_CONFIG[category]) return CATEGORY_CONFIG[category];
-  for (const [key, config] of Object.entries(CATEGORY_CONFIG)) {
-    if (category.includes(key) || key.includes(category.split('.')[0])) {
-      return config;
-    }
-  }
-  return { icon: "❓", color: "#9ca3af", label: category };
-}
 
 function getRiskLevel(ttc: number): RiskLevel {
   if (Number.isFinite(ttc) && ttc < TTC_DANGER_SEC) return "danger";
@@ -155,7 +92,8 @@ function getFreshnessLabel(updatedAt?: string, nowMs: number = Date.now()): stri
 // ─── Single View Canvas ──────────────────────────────────────────────────────
 
 interface SingleViewProps {
-  lidar: AvLidarData | null;
+  /** XY pre-filtered to `range` (one pass for parent; view frustum applied here) */
+  pointsInRange: LidarPoint[];
   annotations?: AvAnnotationsData | null;
   trackHistory?: Record<string, TrackPoint[]>;
   showTrails: boolean;
@@ -171,12 +109,24 @@ interface SingleViewProps {
   onSelect?: () => void;
 }
 
-function SingleView({ 
-  lidar, annotations, trackHistory, showTrails, riskByTrackId, viewAngle, width, height, range,
-  showPoints, showBoxes, showLabels, isCompact, onSelect 
+function SingleView({
+  pointsInRange,
+  annotations,
+  trackHistory,
+  showTrails,
+  riskByTrackId,
+  viewAngle,
+  width,
+  height,
+  range,
+  showPoints,
+  showBoxes,
+  showLabels,
+  isCompact,
+  onSelect,
 }: SingleViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const config = VIEW_CONFIG[viewAngle];
+  const directions = LIDAR_MULTI_VIEW_DIRECTIONS[viewAngle];
   const scale = (Math.min(width, height) / 2 - 20) / range;
 
   useEffect(() => {
@@ -254,12 +204,12 @@ function SingleView({
       ctx.fillStyle = "#64748b";
       ctx.font = "bold 10px system-ui";
       ctx.textAlign = "center";
-      ctx.fillText(config.directions.top, cx, 12);
-      ctx.fillText(config.directions.bottom, cx, height - 4);
+      ctx.fillText(directions.top, cx, 12);
+      ctx.fillText(directions.bottom, cx, height - 4);
       ctx.textAlign = "left";
-      ctx.fillText(config.directions.left, 4, cy);
+      ctx.fillText(directions.left, 4, cy);
       ctx.textAlign = "right";
-      ctx.fillText(config.directions.right, width - 4, cy);
+      ctx.fillText(directions.right, width - 4, cy);
       ctx.textAlign = "left";
     }
 
@@ -269,7 +219,7 @@ function SingleView({
         if (trail.length < 2) return;
         ctx.beginPath();
         trail.forEach((p, idx) => {
-          const [tx, ty] = config.transform(p.x, p.y, p.z, scale, cx, cy);
+          const [tx, ty] = multiViewTransform(viewAngle, p.x, p.y, p.z, scale, cx, cy);
           if (idx === 0) {
             ctx.moveTo(tx, ty);
           } else {
@@ -284,25 +234,17 @@ function SingleView({
     }
 
     // ─── Draw Points ─────────────────────────────────────────────────────
-    if (showPoints && lidar?.points.length) {
-      // Filter points based on view
-      const filteredPoints = lidar.points.filter((p: LidarPoint) => {
-        const [x, y] = p;
-        const dist = Math.sqrt(x * x + y * y);
-        if (dist > range) return false;
-        
-        // For side/front views, filter by depth
-        if (viewAngle === "front" && x < 0) return false;
-        if (viewAngle === "rear" && x > 0) return false;
-        if (viewAngle === "left" && y < 0) return false;
-        if (viewAngle === "right" && y > 0) return false;
-        
-        return true;
-      });
+    if (showPoints && pointsInRange.length) {
+      const filteredPoints = filterLidarPointsForMultiView(
+        pointsInRange,
+        viewAngle,
+        range,
+        true,
+      );
 
       filteredPoints.forEach((point: LidarPoint) => {
         const [x, y, z, intensity] = point;
-        const [sx, sy] = config.transform(x, y, z, scale, cx, cy);
+        const [sx, sy] = multiViewTransform(viewAngle, x, y, z, scale, cx, cy);
 
         if (sx < 5 || sx > width - 5 || sy < 5 || sy > height - 5) return;
 
@@ -333,8 +275,8 @@ function SingleView({
         if (viewAngle === "left" && y < 0) return;
         if (viewAngle === "right" && y > 0) return;
 
-        const [sx, sy] = config.transform(x, y, z, scale, cx, cy);
-        const box = config.boxTransform(ann, scale);
+        const [sx, sy] = multiViewTransform(viewAngle, x, y, z, scale, cx, cy);
+        const box = multiViewBoxTransform(viewAngle, ann, scale);
 
         ctx.save();
         ctx.translate(sx, sy);
@@ -425,10 +367,10 @@ function SingleView({
     if (isCompact) {
       ctx.fillStyle = "#94a3b8";
       ctx.font = "bold 9px system-ui";
-      ctx.fillText(config.label.split(" ")[0], 4, height - 4);
+      ctx.fillText(LIDAR_MULTI_VIEW_LABELS[viewAngle].split(" ")[0], 4, height - 4);
     }
 
-  }, [lidar, annotations, trackHistory, showTrails, riskByTrackId, viewAngle, width, height, range, scale, showPoints, showBoxes, showLabels, isCompact, config]);
+  }, [pointsInRange, annotations, trackHistory, showTrails, riskByTrackId, viewAngle, width, height, range, scale, showPoints, showBoxes, showLabels, isCompact]);
 
   return (
     <canvas 
@@ -443,7 +385,7 @@ function SingleView({
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function LidarMultiView({ lidar, annotations, width = 400, height = 500 }: LidarMultiViewProps) {
+export function LidarMultiView({ lidar, annotations, width = 400, height }: LidarMultiViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousFrameRef = useRef<number | null>(null);
   const [containerWidth, setContainerWidth] = useState(width);
@@ -458,6 +400,8 @@ export function LidarMultiView({ lidar, annotations, width = 400, height = 500 }
   const [sortMode, setSortMode] = useState<SortMode>("nearest");
   const [trackHistory, setTrackHistory] = useState<Record<string, TrackPoint[]>>({});
   const [nowMs, setNowMs] = useState(() => Date.now());
+
+  const aspectRatio = height != null ? height / Math.max(1, width) : 500 / 400;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 500);
@@ -575,11 +519,16 @@ export function LidarMultiView({ lidar, annotations, width = 400, height = 500 }
     setRange(ranges[(ranges.indexOf(range) + 1) % ranges.length]);
   };
 
-  const baseWidth = Math.max(1, width);
   const effectiveWidth = Math.max(280, containerWidth);
-  const effectiveHeight = Math.round((height / baseWidth) * effectiveWidth);
+  const effectiveHeight = Math.round(effectiveWidth * aspectRatio);
   const canvasWidth = layout === "quad" ? (effectiveWidth - 4) / 2 : effectiveWidth;
   const canvasHeight = layout === "quad" ? (effectiveHeight - 120) / 2 : effectiveHeight - 80;
+
+  /** One XY range pass per frame; quad views reuse (frustum only per canvas) */
+  const pointsInRange = useMemo(
+    () => filterLidarPointsInRange(lidar?.points, range),
+    [lidar?.points, range],
+  );
   const frameDelta = lidar && annotations ? Math.abs(lidar.frame - annotations.frame) : null;
   const hasFrameMismatch = frameDelta !== null && frameDelta > 1;
   const lidarFreshness = getFreshnessLabel(lidar?.updatedAt, nowMs);
@@ -666,7 +615,7 @@ export function LidarMultiView({ lidar, annotations, width = 400, height = 500 }
 
       {/* View Angle Selector */}
       <div className="flex items-center justify-center gap-1 px-3 py-2 bg-gray-800/30 border-b border-gray-700">
-        {(Object.keys(VIEW_CONFIG) as ViewAngle[]).map((angle) => (
+        {(Object.keys(VIEW_ICONS) as ViewAngle[]).map((angle) => (
           <button
             key={angle}
             onClick={() => { setViewAngle(angle); setLayout("single"); }}
@@ -676,7 +625,7 @@ export function LidarMultiView({ lidar, annotations, width = 400, height = 500 }
                 : "bg-gray-700/50 text-gray-400 hover:bg-gray-700 hover:text-white"
             }`}
           >
-            {VIEW_CONFIG[angle].icon}
+            {VIEW_ICONS[angle]}
             <span className="hidden sm:inline">{angle.charAt(0).toUpperCase() + angle.slice(1)}</span>
           </button>
         ))}
@@ -686,7 +635,7 @@ export function LidarMultiView({ lidar, annotations, width = 400, height = 500 }
       <div className="relative bg-gray-950">
         {layout === "single" ? (
           <SingleView
-            lidar={lidar}
+            pointsInRange={pointsInRange}
             annotations={annotations}
             trackHistory={trackHistory}
             showTrails={showTrails}
@@ -704,7 +653,7 @@ export function LidarMultiView({ lidar, annotations, width = 400, height = 500 }
             {(["top", "front", "left", "right"] as ViewAngle[]).map((angle) => (
               <SingleView
                 key={angle}
-                lidar={lidar}
+                pointsInRange={pointsInRange}
                 annotations={annotations}
                 trackHistory={trackHistory}
                 showTrails={showTrails}

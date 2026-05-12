@@ -26,13 +26,23 @@ export function LidarView({ lidar, annotations, width = 300, height = 300 }: Lid
   const [rotation, setRotation] = useState(0); // For 3D view rotation
   const [showBoxes, setShowBoxes] = useState(true); // Toggle bounding boxes
 
-  // Auto-rotate 3D view
+  // Auto-rotate 3D view (requestAnimationFrame, ~20 updates/sec)
   useEffect(() => {
     if (viewMode !== "3d") return;
-    const interval = setInterval(() => {
-      setRotation((r) => (r + 1) % 360);
-    }, 50);
-    return () => clearInterval(interval);
+
+    let rafId = 0;
+    let lastTick = performance.now();
+
+    const tick = (now: number) => {
+      rafId = requestAnimationFrame(tick);
+      if (now - lastTick >= 50) {
+        lastTick = now;
+        setRotation((r) => (r + 1) % 360);
+      }
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
   }, [viewMode]);
 
   useEffect(() => {

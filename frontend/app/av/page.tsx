@@ -5,6 +5,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import { useAvSensorSocket } from "@/hooks/useAvSensorSocket";
 import { CameraGrid } from "@/components/av/CameraGrid";
 import { LidarMultiView } from "@/components/av/LidarMultiView";
@@ -16,19 +17,45 @@ import { Wifi, WifiOff, Car, Camera, Radar, MapPin, Navigation, Map, Eye } from 
 
 type MapMode = "trajectory" | "bev" | "world";
 
+const STAT_CARD_STYLES = {
+  blue: {
+    card: "bg-blue-500/5 border-blue-500/20",
+    iconWrap: "bg-blue-500/10",
+    icon: "text-blue-400",
+  },
+  purple: {
+    card: "bg-purple-500/5 border-purple-500/20",
+    iconWrap: "bg-purple-500/10",
+    icon: "text-purple-400",
+  },
+  emerald: {
+    card: "bg-emerald-500/5 border-emerald-500/20",
+    iconWrap: "bg-emerald-500/10",
+    icon: "text-emerald-400",
+  },
+  amber: {
+    card: "bg-amber-500/5 border-amber-500/20",
+    iconWrap: "bg-amber-500/10",
+    icon: "text-amber-400",
+  },
+} as const;
+
+type StatCardTone = keyof typeof STAT_CARD_STYLES;
+
 export default function AvDashboardPage() {
   const { connected, gps, cameras, lidar, status, annotations } = useAvSensorSocket();
   const [mapMode, setMapMode] = useState<MapMode>("world");
   const mapPanelRef = useRef<HTMLDivElement>(null);
-  const [mapViewWidth, setMapViewWidth] = useState(288);
+  const [mapPanelSize, setMapPanelSize] = useState({ width: 288, height: 240 });
 
   useEffect(() => {
     const el = mapPanelRef.current;
     if (!el) return;
 
     const updateSize = () => {
-      const next = Math.max(260, Math.floor(el.clientWidth));
-      setMapViewWidth(next);
+      const w = Math.max(260, Math.floor(el.clientWidth));
+      const h = Math.max(200, Math.min(380, Math.round(w * 0.52)));
+      setMapPanelSize({ width: w, height: h });
     };
 
     updateSize();
@@ -36,6 +63,19 @@ export default function AvDashboardPage() {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  const stats: {
+    label: string;
+    value: string | number;
+    max: number | null;
+    icon: LucideIcon;
+    tone: StatCardTone;
+  }[] = [
+    { label: "Cameras", value: cameras.size, max: 6, icon: Camera, tone: "blue" },
+    { label: "LiDAR Points", value: lidar?.pointCount ?? 0, max: null, icon: Radar, tone: "purple" },
+    { label: "Speed", value: `${gps?.speedKph?.toFixed(1) ?? "—"} km/h`, max: null, icon: Car, tone: "emerald" },
+    { label: "Frame", value: status ? `${status.frame}/${status.totalFrames}` : "—", max: null, icon: MapPin, tone: "amber" },
+  ];
 
   return (
     <div className="flex flex-col h-screen p-4 gap-4 overflow-hidden">
@@ -69,52 +109,26 @@ export default function AvDashboardPage() {
 
       {/* ── Stats Bar ──────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-3 flex-shrink-0">
-        {[
-          {
-            label: "Cameras",
-            value: cameras.size,
-            max: 6,
-            icon: Camera,
-            color: "blue",
-          },
-          {
-            label: "LiDAR Points",
-            value: lidar?.pointCount ?? 0,
-            max: null,
-            icon: Radar,
-            color: "purple",
-          },
-          {
-            label: "Speed",
-            value: `${gps?.speedKph?.toFixed(1) ?? "—"} km/h`,
-            max: null,
-            icon: Car,
-            color: "emerald",
-          },
-          {
-            label: "Frame",
-            value: status ? `${status.frame}/${status.totalFrames}` : "—",
-            max: null,
-            icon: MapPin,
-            color: "amber",
-          },
-        ].map(({ label, value, max, icon: Icon, color }) => (
-          <div
-            key={label}
-            className={`flex items-center gap-3 p-3 rounded-lg border bg-${color}-500/5 border-${color}-500/20`}
-          >
-            <div className={`p-2 rounded-lg bg-${color}-500/10`}>
-              <Icon className={`w-5 h-5 text-${color}-400`} />
+        {stats.map(({ label, value, max, icon: Icon, tone }) => {
+          const styles = STAT_CARD_STYLES[tone];
+          return (
+            <div
+              key={label}
+              className={`flex items-center gap-3 p-3 rounded-lg border ${styles.card}`}
+            >
+              <div className={`p-2 rounded-lg ${styles.iconWrap}`}>
+                <Icon className={`w-5 h-5 ${styles.icon}`} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">{label}</p>
+                <p className="text-lg font-semibold text-white">
+                  {value}
+                  {max !== null && <span className="text-gray-500">/{max}</span>}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-gray-500">{label}</p>
-              <p className="text-lg font-semibold text-white">
-                {value}
-                {max !== null && <span className="text-gray-500">/{max}</span>}
-              </p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* ── Main Content ───────────────────────────────────────── */}
@@ -182,14 +196,18 @@ export default function AvDashboardPage() {
               </div>
             </div>
             {mapMode === "trajectory" && (
-              <LocalTrajectoryView gps={gps} width={mapViewWidth} height={300} />
+              <LocalTrajectoryView
+                gps={gps}
+                width={mapPanelSize.width}
+                height={mapPanelSize.height}
+              />
             )}
             {mapMode === "bev" && (
-              <BirdEyeView gps={gps} width={mapViewWidth} height={300} />
+              <BirdEyeView gps={gps} width={mapPanelSize.width} height={mapPanelSize.height} />
             )}
             {mapMode === "world" && (
               <>
-                <AvMiniMap gps={gps} height={300} />
+                <AvMiniMap gps={gps} height={mapPanelSize.height} />
                 <p className="text-[10px] text-gray-500 mt-1 text-center">
                   ⚠️ Coordinates are approximate (local → GPS)
                 </p>
@@ -199,16 +217,10 @@ export default function AvDashboardPage() {
         </div>
 
         {/* Right: Sidebar with Status, Map, LiDAR — scrollable */}
-        <div className="w-100 shrink-0 overflow-y-auto">
+        <div className="w-80 min-w-[18rem] shrink-0 overflow-y-auto">
           <div className="flex flex-col gap-4 pb-4">
-               {/* LiDAR Multi-View */}
-               <div>
-              <LidarMultiView 
-                lidar={lidar} 
-                annotations={annotations} 
-                width={340} 
-                height={420} 
-              />
+            <div className="w-full min-w-0">
+              <LidarMultiView lidar={lidar} annotations={annotations} />
             </div>
 
              {/* Status Panel */}
