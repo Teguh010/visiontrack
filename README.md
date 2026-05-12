@@ -19,6 +19,7 @@
   <a href="#-tldr">TL;DR</a> •
   <a href="#-why-this-project-exists">Why</a> •
   <a href="#-key-engineering-decisions">Decisions</a> •
+  <a href="#security-status">Security</a> •
   <a href="#-features">Features</a> •
   <a href="#%EF%B8%8F-roadmap">Roadmap</a> •
   <a href="#-quick-start">Quick Start</a> •
@@ -70,6 +71,13 @@ Instead of focusing only on theory, VisionTrack aims to replicate a working syst
 
 ---
 
+## Security status
+
+> [!WARNING]
+> **Development posture:** Full **production security is not applied** in this repo yet. MQTT, Redis, REST, and WebSocket are configured for **local development and demos** (open/anonymous where noted in [ARCHITECTURE.md](ARCHITECTURE.md#security-considerations)). **Hardening is explicit backlog work** (TLS, authentication, authorization, secrets, least-privilege network boundaries). See [Production Recommendations](ARCHITECTURE.md#production-recommendations) in the architecture doc. **Do not expose the default stack to the public internet.**
+
+---
+
 ## 🌍 Open Source & Active Development
 
 
@@ -106,7 +114,7 @@ Contributions, discussions, and ideas are highly welcome.
 - **Event-driven architecture** — MQTT + WebSocket for real-time data flow
 - **Modular monorepo** — Cleanly separated backend, frontend, simulator, and replayer
 - **Type-safe** — Full TypeScript across all packages
-- **Production-ready** — Docker Compose, CI/CD, proper error handling
+- **Production-oriented ops** — Docker Compose, CI/CD, structured error handling ([security posture](#security-status) is dev-first; hardening is backlog)
 
 ---
 
@@ -129,6 +137,7 @@ Contributions, discussions, and ideas are highly welcome.
 - Enhance UI responsiveness
 - Optimize data transformation pipeline
 - Improve modularity & maintainability
+- **Backlog:** Production security hardening (MQTT TLS/ACL, API & WebSocket auth, Redis auth, secrets management) — see [Security status](#security-status)
 
 ### 🔜 Phase 4 — Production Simulation (Planned)
 - Multi-vehicle AV simulation

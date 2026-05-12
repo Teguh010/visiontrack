@@ -646,6 +646,9 @@ interface BoundingBox3D {
 
 ## Security Considerations
 
+> [!WARNING]
+> **Development model, not production hardening:** MQTT, Redis, REST, and WebSocket in this codebase are **not** locked down for internet-facing or multi-tenant deployment. They are set up for **trusted local / lab** workflows. **Applying proper security controls is tracked as backlog** and is described under [Production Recommendations](#production-recommendations) below. Until then, assume **trusted network only** and follow your organization’s security review before any wider exposure.
+
 ### Current Implementation (Development)
 
 | Component | Security Level | Notes |
