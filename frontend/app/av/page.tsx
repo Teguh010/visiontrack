@@ -217,10 +217,16 @@ export default function AvDashboardPage() {
         </div>
 
         {/* Right: Sidebar with Status, Map, LiDAR — scrollable */}
-        <div className="w-80 min-w-[18rem] shrink-0 overflow-y-auto">
+        <div className="w-100 shrink-0 overflow-y-auto">
           <div className="flex flex-col gap-4 pb-4">
-            <div className="w-full min-w-0">
-              <LidarMultiView lidar={lidar} annotations={annotations} />
+               {/* LiDAR Multi-View */}
+               <div>
+              <LidarMultiView 
+                lidar={lidar} 
+                annotations={annotations} 
+                width={340} 
+                height={420} 
+              />
             </div>
 
              {/* Status Panel */}
