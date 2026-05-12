@@ -19,7 +19,7 @@ import { ConfigService } from '@nestjs/config';
 import * as mqtt from 'mqtt';
 import { MqttClient } from 'mqtt';
 import { AvSensorService } from './av-sensor.service';
-import { AvSensorGateway } from './av-sensor.gateway';
+import { AV_TOPICS, CAMERA_CHANNELS } from './av-sensor.constants';
 import {
   AvGpsPayload,
   AvCameraPayload,
@@ -29,15 +29,6 @@ import {
   CameraChannel,
 } from './dto/av-sensor.dto';
 
-const VALID_CAMERAS: CameraChannel[] = [
-  'CAM_FRONT',
-  'CAM_FRONT_LEFT',
-  'CAM_FRONT_RIGHT',
-  'CAM_BACK',
-  'CAM_BACK_LEFT',
-  'CAM_BACK_RIGHT',
-];
-
 @Injectable()
 export class AvSensorMqtt implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AvSensorMqtt.name);
@@ -46,7 +37,6 @@ export class AvSensorMqtt implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly config: ConfigService,
     private readonly avSensorService: AvSensorService,
-    private readonly avSensorGateway: AvSensorGateway,
   ) {}
 
   onModuleInit() {
@@ -66,11 +56,11 @@ export class AvSensorMqtt implements OnModuleInit, OnModuleDestroy {
 
       // Subscribe to all AV sensor topics
       const topics = [
-        'vehicle/gps',
-        'vehicle/camera/+', // wildcard for all cameras
-        'vehicle/lidar',
-        'vehicle/status',
-        'vehicle/annotations',
+        AV_TOPICS.gps,
+        AV_TOPICS.cameraWildcard,
+        AV_TOPICS.lidar,
+        AV_TOPICS.status,
+        AV_TOPICS.annotations,
       ];
 
       topics.forEach((topic) => {
@@ -108,23 +98,18 @@ export class AvSensorMqtt implements OnModuleInit, OnModuleDestroy {
     topic: string,
     messageBuffer: Buffer,
   ): Promise<void> {
-    // Skip processing if no subscribers
-    if (!this.avSensorGateway.hasSubscribers()) {
-      return;
-    }
-
     try {
       const raw: unknown = JSON.parse(messageBuffer.toString());
 
-      if (topic === 'vehicle/gps') {
+      if (topic === AV_TOPICS.gps) {
         await this.handleGps(raw as AvGpsPayload);
       } else if (topic.startsWith('vehicle/camera/')) {
         await this.handleCamera(topic, raw as AvCameraPayload);
-      } else if (topic === 'vehicle/lidar') {
+      } else if (topic === AV_TOPICS.lidar) {
         await this.handleLidar(raw as AvLidarPayload);
-      } else if (topic === 'vehicle/status') {
+      } else if (topic === AV_TOPICS.status) {
         await this.handleStatus(raw as AvStatusPayload);
-      } else if (topic === 'vehicle/annotations') {
+      } else if (topic === AV_TOPICS.annotations) {
         await this.handleAnnotations(raw as AvAnnotationsPayload);
       }
     } catch (err) {
@@ -149,7 +134,7 @@ export class AvSensorMqtt implements OnModuleInit, OnModuleDestroy {
     // Extract camera channel from topic: vehicle/camera/CAM_FRONT
     const channel = topic.split('/')[2] as CameraChannel;
 
-    if (!VALID_CAMERAS.includes(channel)) {
+    if (!CAMERA_CHANNELS.includes(channel as CameraChannel)) {
       this.logger.warn(`⚠️ Unknown camera channel: ${channel}`);
       return;
     }

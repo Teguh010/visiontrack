@@ -10,6 +10,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../../redis/redis.service';
 import { AvSensorGateway } from './av-sensor.gateway';
+import { CAMERA_CHANNELS } from './av-sensor.constants';
 import {
   AvGpsPayload,
   AvGpsData,
@@ -17,11 +18,13 @@ import {
   AvCameraData,
   AvLidarPayload,
   AvLidarData,
+  AvLidarCacheMeta,
   AvStatusPayload,
   AvStatusData,
   AvAnnotationsPayload,
   AvAnnotationsData,
   AvAnnotation,
+  AvAnnotationsCacheMeta,
   AvVehicleState,
   CameraChannel,
 } from './dto/av-sensor.dto';
@@ -225,28 +228,20 @@ export class AvSensorService {
   async getCurrentState(): Promise<AvVehicleState> {
     const [gps, lidar, status, annotations] = await Promise.all([
       this.redis.getJson<AvGpsData>(REDIS_AV_GPS),
-      this.redis.getJson<AvLidarData>(REDIS_AV_LIDAR),
+      this.redis.getJson<AvLidarData | AvLidarCacheMeta>(REDIS_AV_LIDAR),
       this.redis.getJson<AvStatusData>(REDIS_AV_STATUS),
-      this.redis.getJson<AvAnnotationsData>(REDIS_AV_ANNOTATIONS),
+      this.redis.getJson<AvAnnotationsData | AvAnnotationsCacheMeta>(
+        REDIS_AV_ANNOTATIONS,
+      ),
     ]);
 
-    // Get all camera channels
-    const cameraChannels: CameraChannel[] = [
-      'CAM_FRONT',
-      'CAM_FRONT_LEFT',
-      'CAM_FRONT_RIGHT',
-      'CAM_BACK',
-      'CAM_BACK_LEFT',
-      'CAM_BACK_RIGHT',
-    ];
-
-    const cameraPromises = cameraChannels.map((ch) =>
+    const cameraPromises = CAMERA_CHANNELS.map((ch) =>
       this.redis.getJson<AvCameraData>(`${REDIS_AV_CAMERA}${ch}`),
     );
     const cameraResults = await Promise.all(cameraPromises);
 
     const cameras: Partial<Record<CameraChannel, AvCameraData>> = {};
-    cameraChannels.forEach((ch, i) => {
+    CAMERA_CHANNELS.forEach((ch, i) => {
       if (cameraResults[i]) {
         cameras[ch] = cameraResults[i]!;
       }

@@ -4,6 +4,10 @@
  * Data types for autonomous vehicle sensor data from nuScenes replayer
  */
 
+import type { CameraChannel } from '../av-sensor.constants';
+export type { CameraChannel } from '../av-sensor.constants';
+export { CAMERA_CHANNELS } from '../av-sensor.constants';
+
 // ─── GPS Data ────────────────────────────────────────────────────────────────
 
 export interface AvGpsPayload {
@@ -38,14 +42,6 @@ export interface AvGpsData {
 }
 
 // ─── Camera Data ─────────────────────────────────────────────────────────────
-
-export type CameraChannel =
-  | 'CAM_FRONT'
-  | 'CAM_FRONT_LEFT'
-  | 'CAM_FRONT_RIGHT'
-  | 'CAM_BACK'
-  | 'CAM_BACK_LEFT'
-  | 'CAM_BACK_RIGHT';
 
 export interface AvCameraPayload {
   camera: CameraChannel;
@@ -111,6 +107,14 @@ export interface AvLidarData {
   updatedAt: string;
 }
 
+/** Shape stored in Redis for LiDAR (points omitted for size) */
+export interface AvLidarCacheMeta {
+  pointCount: number;
+  timestamp: number;
+  frame: number;
+  updatedAt: string;
+}
+
 // ─── Status Data ─────────────────────────────────────────────────────────────
 
 export type ReplayStatus = 'playing' | 'paused' | 'finished' | 'idle';
@@ -138,9 +142,9 @@ export interface AvStatusData {
 export interface AvVehicleState {
   gps: AvGpsData | null;
   cameras: Partial<Record<CameraChannel, AvCameraData>>;
-  lidar: AvLidarData | null;
+  lidar: AvLidarData | AvLidarCacheMeta | null;
   status: AvStatusData | null;
-  annotations: AvAnnotationsData | null;
+  annotations: AvAnnotationsData | AvAnnotationsCacheMeta | null;
 }
 
 // ─── Annotation Data (3D Bounding Boxes) ─────────────────────────────────────
@@ -226,5 +230,13 @@ export interface AvAnnotationsData {
   timestamp: number;
   frame: number;
   count: number;
+  updatedAt: string;
+}
+
+/** Shape stored in Redis for annotations (full list omitted for size) */
+export interface AvAnnotationsCacheMeta {
+  count: number;
+  timestamp: number;
+  frame: number;
   updatedAt: string;
 }

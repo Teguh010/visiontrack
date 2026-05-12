@@ -3,15 +3,8 @@
  * ──────────────────────────────────────────────────────────────────
  * Real-time streaming of autonomous vehicle sensor data via Socket.IO
  *
- * Server → Client events:
- *   "av:gps"      — GPS/ego pose update
- *   "av:camera"   — Camera frame (base64)
- *   "av:lidar"    — LiDAR point cloud
- *   "av:status"   — Replay status
- *
- * Client → Server events:
- *   "av:subscribe"   — Subscribe to AV sensor stream
- *   "av:unsubscribe" — Unsubscribe from AV sensor stream
+ * Server → Client events: see AV_EVENTS
+ * Client → Server: av:subscribe / av:unsubscribe
  */
 
 import {
@@ -32,8 +25,7 @@ import {
   AvStatusData,
   AvAnnotationsData,
 } from './dto/av-sensor.dto';
-
-const AV_ROOM = 'av-sensor-stream';
+import { AV_EVENTS, AV_ROOM } from './av-sensor.constants';
 
 @WebSocketGateway({
   cors: {
@@ -51,7 +43,6 @@ export class AvSensorGateway
   server: Server;
 
   private readonly logger = new Logger(AvSensorGateway.name);
-  private subscriberCount = 0;
 
   afterInit() {
     this.logger.log(
@@ -64,69 +55,68 @@ export class AvSensorGateway
   }
 
   handleDisconnect(client: Socket) {
-    // Check if client was in the AV room
     if (client.rooms.has(AV_ROOM)) {
-      this.subscriberCount--;
       this.logger.log(
-        `📡 AV subscriber disconnected: ${client.id} (total: ${this.subscriberCount})`,
+        `📡 AV subscriber disconnected: ${client.id} (room size: ${this.getRoomSize()})`,
       );
     }
+  }
+
+  private getRoomSize(): number {
+    return this.server?.sockets?.adapter?.rooms?.get(AV_ROOM)?.size ?? 0;
   }
 
   /**
    * Client subscribes to AV sensor stream.
    * Only clients in the room will receive sensor data.
    */
-  @SubscribeMessage('av:subscribe')
+  @SubscribeMessage(AV_EVENTS.subscribe)
   handleSubscribe(@ConnectedSocket() client: Socket) {
     void client.join(AV_ROOM);
-    this.subscriberCount++;
     this.logger.log(
-      `📡 Client ${client.id} subscribed to AV stream (total: ${this.subscriberCount})`,
+      `📡 Client ${client.id} subscribed to AV stream (room size: ${this.getRoomSize()})`,
     );
-    return { event: 'av:subscribed', success: true };
+    return { event: AV_EVENTS.subscribed, success: true };
   }
 
   /**
    * Client unsubscribes from AV sensor stream.
    */
-  @SubscribeMessage('av:unsubscribe')
+  @SubscribeMessage(AV_EVENTS.unsubscribe)
   handleUnsubscribe(@ConnectedSocket() client: Socket) {
     void client.leave(AV_ROOM);
-    this.subscriberCount--;
     this.logger.log(
-      `📡 Client ${client.id} unsubscribed from AV stream (total: ${this.subscriberCount})`,
+      `📡 Client ${client.id} unsubscribed from AV stream (room size: ${this.getRoomSize()})`,
     );
-    return { event: 'av:unsubscribed', success: true };
+    return { event: AV_EVENTS.unsubscribed, success: true };
   }
 
   /**
-   * Check if there are any active subscribers.
-   * Used to skip processing if no one is listening.
+   * Whether any client is in the AV stream room (derived from adapter; no manual counter).
    */
   hasSubscribers(): boolean {
-    return this.subscriberCount > 0;
+    return this.getRoomSize() > 0;
   }
 
   // ─── Emit methods (called by AvSensorService) ────────────────────────────────
 
   emitGps(data: AvGpsData): void {
-    this.server.to(AV_ROOM).emit('av:gps', data);
+    this.server.to(AV_ROOM).emit(AV_EVENTS.gps, data);
   }
 
   emitCamera(data: AvCameraData): void {
-    this.server.to(AV_ROOM).emit('av:camera', data);
+    this.server.to(AV_ROOM).emit(AV_EVENTS.camera, data);
   }
 
   emitLidar(data: AvLidarData): void {
-    this.server.to(AV_ROOM).emit('av:lidar', data);
+    this.server.to(AV_ROOM).emit(AV_EVENTS.lidar, data);
   }
 
   emitStatus(data: AvStatusData): void {
-    this.server.to(AV_ROOM).emit('av:status', data);
+    this.server.to(AV_ROOM).emit(AV_EVENTS.status, data);
   }
 
   emitAnnotations(data: AvAnnotationsData): void {
-    this.server.to(AV_ROOM).emit('av:annotations', data);
+    this.server.to(AV_ROOM).emit(AV_EVENTS.annotations, data);
   }
 }
