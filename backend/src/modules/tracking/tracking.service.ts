@@ -34,6 +34,11 @@ interface StopState {
   currentStatus: 'MOVING' | 'STOPPED';
 }
 
+interface StatusDetectionResult {
+  status: 'MOVING' | 'STOPPED';
+  justStopped: boolean;
+}
+
 /** Batch write buffer entry */
 interface TrackingPointBuffer {
   vehicleId: string;
@@ -101,7 +106,7 @@ export class TrackingService implements OnModuleInit, OnModuleDestroy {
 
   async processLocation(data: ProcessedLocation): Promise<void> {
     // detectStatus sekarang async (baca/tulis Redis)
-    const status = await this.detectStatus(
+    const { status, justStopped } = await this.detectStatus(
       data.vehicleId,
       data.speed,
       data.timestamp,
@@ -133,6 +138,10 @@ export class TrackingService implements OnModuleInit, OnModuleDestroy {
 
     // Emit to WebSocket clients
     this.gateway.emitVehicleUpdate(lastPosition);
+
+    if (justStopped) {
+      this.gateway.emitVehicleStopped(data.vehicleId, data.lat, data.lon);
+    }
   }
 
   // ─── Stop Detection FSM (state di Redis) ────────────────────────────────────
@@ -145,7 +154,7 @@ export class TrackingService implements OnModuleInit, OnModuleDestroy {
     vehicleId: string,
     speed: number,
     timestamp: Date,
-  ): Promise<'MOVING' | 'STOPPED'> {
+  ): Promise<StatusDetectionResult> {
     const redisKey = `${STOP_STATE_PREFIX}${vehicleId}`;
 
     // Ambil state dari Redis (bukan dari Map in-memory)
@@ -157,6 +166,7 @@ export class TrackingService implements OnModuleInit, OnModuleDestroy {
     };
 
     let changed = false;
+    let justStopped = false;
 
     if (speed >= STOP_SPEED_THRESHOLD_KMH) {
       if (
@@ -184,6 +194,7 @@ export class TrackingService implements OnModuleInit, OnModuleDestroy {
         );
         state.currentStatus = 'STOPPED';
         changed = true;
+        justStopped = true;
       }
     }
 
@@ -192,7 +203,7 @@ export class TrackingService implements OnModuleInit, OnModuleDestroy {
       await this.redis.setJson(redisKey, state, STOP_STATE_TTL_SECONDS);
     }
 
-    return state.currentStatus;
+    return { status: state.currentStatus, justStopped };
   }
 
   // ─── Batch Write Buffer ──────────────────────────────────────────────────────
