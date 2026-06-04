@@ -17,10 +17,19 @@ import { MqttClient } from 'mqtt';
 import { TrackingService } from './tracking.service';
 import { MqttPayload } from './dto/mqtt-payload.dto';
 
+const MQTT_RATE_LIMIT = 30; // max messages per vehicle per window
+const MQTT_RATE_WINDOW_MS = 60_000; // 1 minute
+
+interface RateLimitEntry {
+  count: number;
+  windowStart: number;
+}
+
 @Injectable()
 export class TrackingMqtt implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TrackingMqtt.name);
   private client: MqttClient;
+  private readonly rateLimits = new Map<string, RateLimitEntry>();
 
   constructor(
     private readonly config: ConfigService,
@@ -84,6 +93,13 @@ export class TrackingMqtt implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      if (this.isRateLimited(vehicleId)) {
+        this.logger.warn(
+          `⚠️  Rate limit exceeded for ${vehicleId}, dropping message`,
+        );
+        return;
+      }
+
       // Validate required fields
       if (raw.lat == null || raw.lon == null || raw.speed == null) {
         this.logger.warn(
@@ -111,5 +127,19 @@ export class TrackingMqtt implements OnModuleInit, OnModuleDestroy {
   /** Clamp coordinate to valid range */
   private normalizeCoord(value: number, min: number, max: number): number {
     return Math.min(Math.max(value, min), max);
+  }
+
+  /** Per-vehicle sliding window rate limiter */
+  private isRateLimited(vehicleId: string): boolean {
+    const now = Date.now();
+    const entry = this.rateLimits.get(vehicleId);
+
+    if (!entry || now - entry.windowStart >= MQTT_RATE_WINDOW_MS) {
+      this.rateLimits.set(vehicleId, { count: 1, windowStart: now });
+      return false;
+    }
+
+    entry.count += 1;
+    return entry.count > MQTT_RATE_LIMIT;
   }
 }
