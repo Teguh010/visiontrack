@@ -7,7 +7,7 @@ import { TrackingGateway } from './tracking.gateway';
 describe('TrackingService', () => {
   let service: TrackingService;
   let redis: jest.Mocked<Pick<RedisService, 'getJson' | 'setJson' | 'keys'>>;
-  let prisma: jest.Mocked<Pick<PrismaService, 'trackingPoint' | 'vehicle'>>;
+  let createManyMock: jest.Mock;
   let gateway: jest.Mocked<
     Pick<TrackingGateway, 'emitVehicleUpdate' | 'emitVehicleStopped'>
   >;
@@ -19,13 +19,15 @@ describe('TrackingService', () => {
       keys: jest.fn().mockResolvedValue([]),
     };
 
-    prisma = {
+    createManyMock = jest.fn().mockResolvedValue({ count: 0 });
+
+    const prisma = {
       trackingPoint: {
-        createMany: jest.fn().mockResolvedValue({ count: 0 }),
-      } as unknown as PrismaService['trackingPoint'],
+        createMany: createManyMock,
+      },
       vehicle: {
         upsert: jest.fn().mockResolvedValue({}),
-      } as unknown as PrismaService['vehicle'],
+      },
     };
 
     gateway = {
@@ -106,7 +108,7 @@ describe('TrackingService', () => {
     it('does not call prisma.createMany when buffer is empty', async () => {
       await service['flushBuffer']();
 
-      expect(prisma.trackingPoint.createMany).not.toHaveBeenCalled();
+      expect(createManyMock).not.toHaveBeenCalled();
     });
 
     it('flushes buffered records and clears the buffer', async () => {
@@ -122,11 +124,12 @@ describe('TrackingService', () => {
 
       await service['flushBuffer']();
 
-      expect(prisma.trackingPoint.createMany).toHaveBeenCalledWith({
-        data: expect.arrayContaining([
-          expect.objectContaining({ vehicleId: 'VH-001' }),
-        ]),
-      });
+      expect(createManyMock).toHaveBeenCalledTimes(1);
+      const calls = createManyMock.mock.calls as [
+        { data: { vehicleId: string }[] },
+      ][];
+      expect(calls[0][0].data).toHaveLength(1);
+      expect(calls[0][0].data[0].vehicleId).toBe('VH-001');
       expect(service['writeBuffer']).toHaveLength(0);
     });
 
@@ -141,9 +144,7 @@ describe('TrackingService', () => {
         timestamp: new Date(),
       });
 
-      prisma.trackingPoint.createMany.mockRejectedValueOnce(
-        new Error('DB unavailable'),
-      );
+      createManyMock.mockRejectedValueOnce(new Error('DB unavailable'));
 
       await service['flushBuffer']();
 
@@ -156,7 +157,9 @@ describe('TrackingService', () => {
     it('emits vehicle:stopped when vehicle transitions to STOPPED', async () => {
       const timestamp = new Date('2024-06-01T12:05:00Z');
       redis.getJson.mockResolvedValue({
-        firstSlowTimestamp: new Date(timestamp.getTime() - 130_000).toISOString(),
+        firstSlowTimestamp: new Date(
+          timestamp.getTime() - 130_000,
+        ).toISOString(),
         currentStatus: 'MOVING',
       });
 

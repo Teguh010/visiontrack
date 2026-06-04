@@ -134,7 +134,7 @@ export class AvSensorMqtt implements OnModuleInit, OnModuleDestroy {
     // Extract camera channel from topic: vehicle/camera/CAM_FRONT
     const channel = topic.split('/')[2] as CameraChannel;
 
-    if (!CAMERA_CHANNELS.includes(channel as CameraChannel)) {
+    if (!CAMERA_CHANNELS.includes(channel)) {
       this.logger.warn(`⚠️ Unknown camera channel: ${channel}`);
       return;
     }

@@ -25,11 +25,7 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { LastPosition } from './tracking.service';
-import {
-  FLEET_ROOM,
-  TRACKING_EVENTS,
-  vehicleRoom,
-} from './tracking.constants';
+import { FLEET_ROOM, TRACKING_EVENTS, vehicleRoom } from './tracking.constants';
 
 export interface VehicleStoppedPayload {
   vehicleId: string;
@@ -86,11 +82,7 @@ export class TrackingGateway
   /**
    * Emit stop detection alert when a vehicle transitions to STOPPED.
    */
-  emitVehicleStopped(
-    vehicleId: string,
-    lat: number,
-    lon: number,
-  ): void {
+  emitVehicleStopped(vehicleId: string, lat: number, lon: number): void {
     const payload: VehicleStoppedPayload = {
       vehicleId,
       lat,
