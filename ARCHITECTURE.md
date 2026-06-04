@@ -14,6 +14,8 @@
 - [System Architecture](#system-architecture)
 - [Data Flow](#data-flow)
 - [Fleet Tracking Module](#fleet-tracking-module)
+  - [Socket.IO Room Model](#socketio-room-model)
+  - [Stop Detection Algorithm](#stop-detection-algorithm)
 - [AV Sensor Module](#av-sensor-module)
 - [Infrastructure](#infrastructure)
 - [Security Considerations](#security-considerations)
@@ -255,15 +257,20 @@ backend/src/modules/tracking/tracking.service.ts
          ▼
 backend/src/modules/tracking/tracking.gateway.ts
          │
-         │ Socket.IO emit to all connected clients:
-         │ Event: "vehicle:update"
-         │ Payload: { vehicleId, lat, lon, speed, ... }
+         │ Socket.IO — emit only to subscribed rooms:
+         │   this.server.to('fleet:all').emit('vehicle:update', ...)
+         │   this.server.to('vehicle:VH-001').emit('vehicle:update', ...)
+         │
+         │ If status just became STOPPED:
+         │   this.server.to('fleet:all').emit('vehicle:stopped', ...)
+         │   this.server.to('vehicle:VH-001').emit('vehicle:stopped', ...)
          ▼
 frontend/hooks/useFleetSocket.ts
          │
-         │ 1. Listen for "vehicle:update" events
-         │ 2. Update React state (Map of vehicles)
-         │ 3. Trigger re-render
+         │ 1. On connect → emit "subscribe:fleet" (join room fleet:all)
+         │ 2. Listen for "vehicle:update" → update React state Map
+         │ 3. Listen for "vehicle:stopped" → update status + log event
+         │ 4. Trigger re-render
          ▼
 frontend/components/FleetMapInner.tsx
          │
@@ -281,6 +288,57 @@ frontend/components/FleetMapInner.tsx
 | **HIGHWAY** | Long distance | Low | 80-120 km/h |
 | **DELIVERY** | Stop & go | Very high | 0-40 km/h |
 | **PATROL** | Random patrol | Medium | 20-80 km/h |
+
+### Socket.IO Room Model
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                     Socket.IO Namespace: /  (Fleet Tracking)             │
+│                                                                          │
+│  ┌─────────────────────────────────────────────┐                         │
+│  │  Room: fleet:all                            │                         │
+│  │                                             │                         │
+│  │  Who joins: every client on fleet map page  │                         │
+│  │  How: socket.emit("subscribe:fleet")        │                         │
+│  │                                             │                         │
+│  │  Receives:                                  │                         │
+│  │    vehicle:update  (all vehicles)           │                         │
+│  │    vehicle:stopped (any vehicle)            │                         │
+│  └─────────────────────────────────────────────┘                         │
+│                                                                          │
+│  ┌─────────────────────────────────────────────┐                         │
+│  │  Room: vehicle:{vehicleId}                  │                         │
+│  │                                             │                         │
+│  │  Who joins: client tracking one vehicle     │                         │
+│  │  How: socket.emit("subscribe:vehicle",      │                         │
+│  │                    "VH-001")                │                         │
+│  │                                             │                         │
+│  │  Receives: vehicle:update and               │                         │
+│  │            vehicle:stopped for that vehicle │                         │
+│  └─────────────────────────────────────────────┘                         │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                  Socket.IO Namespace: /av  (AV Sensor)                   │
+│                                                                          │
+│  ┌─────────────────────────────────────────────┐                         │
+│  │  Room: av-sensor-stream                     │                         │
+│  │                                             │                         │
+│  │  Who joins: client on /av page              │                         │
+│  │  How: socket.emit("av:subscribe")           │                         │
+│  │                                             │                         │
+│  │  Receives: av:gps, av:camera, av:lidar,     │                         │
+│  │            av:annotations, av:status        │                         │
+│  └─────────────────────────────────────────────┘                         │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Why rooms?
+  Without rooms → server.emit() → ALL clients receive ALL data
+  With rooms    → server.to(room).emit() → only subscribed clients receive it
+
+  Example: LiDAR frames (large payload) only go to clients on the /av page.
+  Fleet map clients never receive LiDAR data at all.
+```
 
 ### Stop Detection Algorithm
 
@@ -761,15 +819,26 @@ JWT_SECRET=your_jwt_secret
 
 ### WebSocket Events
 
-| Namespace | Event | Direction |
-|-----------|-------|-----------|
-| `/` | `vehicle:update` | Server → Client |
-| `/` | `vehicle:stopped` | Server → Client |
-| `/av` | `av:gps` | Server → Client |
-| `/av` | `av:camera` | Server → Client |
-| `/av` | `av:lidar` | Server → Client |
-| `/av` | `av:annotations` | Server → Client |
-| `/av` | `av:status` | Server → Client |
+#### Client → Server (subscription)
+
+| Namespace | Event | Payload | Effect |
+|-----------|-------|---------|--------|
+| `/` | `subscribe:fleet` | — | Join `fleet:all` room — receive all vehicle updates |
+| `/` | `subscribe:vehicle` | `vehicleId: string` | Join `vehicle:{id}` room — single vehicle view |
+| `/av` | `av:subscribe` | — | Join `av-sensor-stream` room |
+| `/av` | `av:unsubscribe` | — | Leave `av-sensor-stream` room |
+
+#### Server → Client (real-time data)
+
+| Namespace | Room | Event | Direction |
+|-----------|------|-------|-----------|
+| `/` | `fleet:all` or `vehicle:{id}` | `vehicle:update` | Server → Client |
+| `/` | `fleet:all` or `vehicle:{id}` | `vehicle:stopped` | Server → Client |
+| `/av` | `av-sensor-stream` | `av:gps` | Server → Client |
+| `/av` | `av-sensor-stream` | `av:camera` | Server → Client |
+| `/av` | `av-sensor-stream` | `av:lidar` | Server → Client |
+| `/av` | `av-sensor-stream` | `av:annotations` | Server → Client |
+| `/av` | `av-sensor-stream` | `av:status` | Server → Client |
 
 ---
 

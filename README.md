@@ -132,12 +132,18 @@ Contributions, discussions, and ideas are highly welcome.
 - AV dashboard with visualization (LiDAR, camera, annotations)
 - Bounding box rendering & TTC-based risk analysis
 
-### 🚧 Phase 3 — System Refinement (In Progress)
+### ✅ Phase 3 — System Refinement (Completed)
 - Improve LiDAR rendering & multi-view performance
 - Enhance UI responsiveness
 - Optimize data transformation pipeline
 - Improve modularity & maintainability
-- **Backlog:** Production security hardening (MQTT TLS/ACL, API & WebSocket auth, Redis auth, secrets management) — see [Security status](#security-status)
+- Socket.IO room model — fleet map and per-vehicle subscriptions
+- `vehicle:stopped` real-time event with stop detection FSM
+- MQTT per-vehicle rate limiting (30 msg/min)
+- REST API rate limiting via `@nestjs/throttler`
+- Docker Compose health checks for all services
+- Unit test coverage for core business logic
+- **Security hardening backlog:** MQTT TLS/ACL, API & WebSocket auth, Redis auth, secrets management — see [Security status](#security-status)
 
 ### 🔜 Phase 4 — Production Simulation (Planned)
 - Multi-vehicle AV simulation
