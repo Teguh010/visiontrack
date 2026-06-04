@@ -26,6 +26,13 @@ export interface LastPosition {
   updatedAt: string;
 }
 
+export interface VehicleStoppedEvent {
+  vehicleId: string;
+  lat: number;
+  lon: number;
+  stoppedAt: string;
+}
+
 export interface TrackingPoint {
   id: number;
   lat: string | number;
