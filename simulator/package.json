@@ -22,7 +22,7 @@
     "start:prod": "node dist/simulator.js"
   },
   "dependencies": {
-    "mqtt": "^5.3.4"
+    "mqtt": "^5.15.2"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",
