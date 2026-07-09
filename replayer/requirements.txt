@@ -8,4 +8,4 @@ nuscenes-devkit>=1.1.11
 paho-mqtt>=2.0.0
 
 # Numerical computation for LiDAR point cloud
-numpy>=1.24.0
+numpy>=2.5.1
